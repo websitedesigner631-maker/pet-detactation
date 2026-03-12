@@ -1,7 +1,13 @@
 import Image from 'next/image';
 import { notFound } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion';
 import {
   MoreVertical,
   CheckCircle,
@@ -10,10 +16,16 @@ import {
   PawPrint,
   Cake,
   Scale,
+  BookHeart,
+  Activity,
+  HeartPulse,
+  Sparkles,
+  Bone,
 } from 'lucide-react';
 import { pets } from '@/lib/data';
 import PageHeader from '@/components/page-header';
 import Link from 'next/link';
+import { getPetCareInfo, type PetCareInfoOutput } from '@/ai/flows/get-pet-care-info';
 
 const InfoRow = ({
   icon: Icon,
@@ -33,12 +45,74 @@ const InfoRow = ({
   </div>
 );
 
-export default function PetProfilePage({ params }: { params: { id: string } }) {
+function CareGuide({ careInfo, breed }: { careInfo: PetCareInfoOutput, breed: string }) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Sparkles className="text-primary" />
+            AI Breed & Care Guide
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+              <h3 className="font-semibold text-lg mb-2">About the {breed}</h3>
+              <p className="text-sm text-muted-foreground">{careInfo.breedInfo}</p>
+          </div>
+          <Accordion type="single" collapsible className="w-full">
+            <AccordionItem value="diet">
+              <AccordionTrigger className="font-semibold">
+                <div className="flex items-center gap-2"><Bone /> Diet</div>
+              </AccordionTrigger>
+              <AccordionContent className="text-muted-foreground prose-sm">
+                  {careInfo.careGuide.diet}
+              </AccordionContent>
+            </AccordionItem>
+            <AccordionItem value="exercise">
+              <AccordionTrigger className="font-semibold">
+                <div className="flex items-center gap-2"><Activity /> Exercise</div>
+              </AccordionTrigger>
+              <AccordionContent className="text-muted-foreground prose-sm">
+                  {careInfo.careGuide.exercise}
+              </AccordionContent>
+            </AccordionItem>
+            <AccordionItem value="grooming">
+              <AccordionTrigger className="font-semibold">
+               <div className="flex items-center gap-2"><BookHeart /> Grooming</div>
+              </AccordionTrigger>
+              <AccordionContent className="text-muted-foreground prose-sm">
+                  {careInfo.careGuide.grooming}
+              </AccordionContent>
+            </AccordionItem>
+            <AccordionItem value="health">
+              <AccordionTrigger className="font-semibold">
+                <div className="flex items-center gap-2"><HeartPulse /> Common Health Issues</div>
+              </AccordionTrigger>
+              <AccordionContent className="text-muted-foreground prose-sm">
+                  {careInfo.careGuide.commonHealthIssues}
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
+        </CardContent>
+      </Card>
+    );
+  }
+
+export default async function PetProfilePage({ params }: { params: { id: string } }) {
   const pet = pets.find((p) => p.id === params.id);
 
   if (!pet) {
     notFound();
   }
+
+  let careInfo: PetCareInfoOutput | null = null;
+  try {
+    careInfo = await getPetCareInfo({ petType: pet.petType, breed: pet.breed });
+  } catch (e) {
+    console.error("Failed to get pet care info:", e);
+    // Handle error gracefully, maybe show a message to the user
+  }
+
 
   return (
     <div className="bg-muted/30">
@@ -78,6 +152,8 @@ export default function PetProfilePage({ params }: { params: { id: string } }) {
             </div>
           </CardContent>
         </Card>
+
+        {careInfo && <CareGuide careInfo={careInfo} breed={pet.breed} />}
 
         <div className="space-y-3">
           <h3 className="text-sm font-bold uppercase text-muted-foreground px-2">
