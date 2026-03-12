@@ -76,3 +76,13 @@ export type LostPetReport = {
   description: string;
   contact: string;
 }
+
+export type ScheduleItemCategory = 'Feeding' | 'Exercise' | 'Grooming' | 'Training' | 'Health' | 'Other';
+
+export type ScheduleItem = {
+    id: string;
+    title: string;
+    time: string;
+    category: ScheduleItemCategory;
+    petId: string;
+};
