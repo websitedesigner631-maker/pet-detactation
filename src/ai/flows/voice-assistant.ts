@@ -42,8 +42,9 @@ async function toWav(
 
 // Define Input Schema
 const VoiceAssistantInputSchema = z.object({
-  command: z.string().describe('The voice command or question from the user.'),
+  command: z.string().describe('The voice command or question from the user.').optional(),
   language: z.enum(['en', 'hi', 'or']).default('en').describe('The desired language for the response (English, Hindi, or Odia).'),
+  mode: z.enum(['greet', 'respond']).default('respond').describe('Determines if the assistant should greet the user or respond to a command.'),
 });
 export type VoiceAssistantInput = z.infer<typeof VoiceAssistantInputSchema>;
 
@@ -62,8 +63,21 @@ const voiceAssistantFlow = ai.defineFlow(
     outputSchema: VoiceAssistantOutputSchema,
   },
   async (input) => {
-    // Generate text response first
-    const textGenPrompt = `You are a helpful and friendly pet care assistant for the "Smart Pet Care" mobile app.
+    let textToSpeak: string;
+
+    if (input.mode === 'greet') {
+        const greetings = {
+            en: 'How can I help your pet today?',
+            hi: 'मैं आज आपके पालतू जानवर की कैसे मदद कर सकता हूँ?',
+            or: 'ମୁଁ ଆଜି ଆପଣଙ୍କ ପୋଷା ଜନ୍ତୁକୁ କିପରି ସାହାଯ୍ୟ କରିପାରିବି?',
+        };
+        textToSpeak = greetings[input.language];
+    } else {
+        if (!input.command) {
+            throw new Error('A command is required when in respond mode.');
+        }
+        // Generate text response first
+        const textGenPrompt = `You are a helpful and friendly pet care assistant for the "Smart Pet Care" mobile app.
 Your goal is to provide simple, concise, and easy-to-understand answers to pet owners' questions or commands.
 Respond in the specified language. If you cannot fulfill a request, politely state that you cannot.
 
@@ -71,20 +85,21 @@ User Command: "${input.command}"
 Desired Response Language: "${input.language}"
 
 Please provide your simple response in ${input.language}:`;
+      
+      const llmResponse = await ai.generate({
+          prompt: textGenPrompt,
+      });
+      textToSpeak = llmResponse.text;
+    }
     
-    const llmResponse = await ai.generate({
-        prompt: textGenPrompt,
-    });
-    const textResponse = llmResponse.text;
-
-    if (!textResponse) {
+    if (!textToSpeak) {
       throw new Error('Failed to get a text response from the AI.');
     }
 
     // Convert the text response to audio using TTS model
     const { media } = await ai.generate({
       model: googleAI.model('gemini-2.5-flash-preview-tts'),
-      prompt: textResponse,
+      prompt: textToSpeak,
       config: {
         responseModalities: ['AUDIO'],
         speechConfig: {
@@ -109,7 +124,7 @@ Please provide your simple response in ${input.language}:`;
     const audioWavBase64 = await toWav(audioBuffer);
 
     return {
-      responseText: textResponse,
+      responseText: textToSpeak,
       audioResponse: 'data:audio/wav;base64,' + audioWavBase64,
     };
   }

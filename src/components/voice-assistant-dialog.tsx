@@ -13,7 +13,14 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Mic, Bot, Volume2, Loader2, Languages } from 'lucide-react';
+import {
+  Mic,
+  Bot,
+  Volume2,
+  Loader2,
+  Languages,
+  Sparkles,
+} from 'lucide-react';
 import { voiceAssistant } from '@/ai/flows/voice-assistant';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -38,6 +45,7 @@ export default function VoiceAssistantDialog() {
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
+  const [isGreeting, setIsGreeting] = useState(false);
   const [micError, setMicError] = useState<string | null>(null);
   const [response, setResponse] = useState<{
     responseText: string;
@@ -45,6 +53,7 @@ export default function VoiceAssistantDialog() {
   } | null>(null);
   const { toast } = useToast();
   const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const prevIsOpen = useRef(false);
 
   const {
     control,
@@ -59,6 +68,25 @@ export default function VoiceAssistantDialog() {
   });
 
   const selectedLanguage = watch('language');
+
+  const handleListen = () => {
+    if (isListening) {
+      recognitionRef.current?.stop();
+    } else {
+      setMicError(null);
+      setResponse(null);
+      setValue('command', '');
+      try {
+        recognitionRef.current?.start();
+        setIsListening(true);
+      } catch (e) {
+        console.error('Could not start recognition:', e);
+        setMicError(
+          'Could not start microphone. Please check permissions and try again.'
+        );
+      }
+    }
+  };
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -75,8 +103,8 @@ export default function VoiceAssistantDialog() {
     }
 
     const recognition = new SpeechRecognition();
-    recognition.continuous = false; // Stop after first detection of silence
-    recognition.interimResults = true; // Get results as they are being recognized
+    recognition.continuous = false;
+    recognition.interimResults = true;
 
     recognition.onresult = (event) => {
       const transcript = Array.from(event.results)
@@ -87,6 +115,10 @@ export default function VoiceAssistantDialog() {
     };
 
     recognition.onerror = (event) => {
+      if (event.error === 'no-speech') {
+        setIsListening(false);
+        return; // Not a fatal error
+      }
       if (
         event.error === 'not-allowed' ||
         event.error === 'service-not-allowed'
@@ -107,7 +139,6 @@ export default function VoiceAssistantDialog() {
     recognitionRef.current = recognition;
   }, [setValue]);
 
-  // Update recognition language when user changes it
   useEffect(() => {
     if (recognitionRef.current) {
       let lang = 'en-US';
@@ -117,6 +148,45 @@ export default function VoiceAssistantDialog() {
     }
   }, [selectedLanguage]);
 
+  useEffect(() => {
+    if (isOpen && !prevIsOpen.current) {
+      const getGreetingAndListen = async () => {
+        setIsGreeting(true);
+        try {
+          const result = await voiceAssistant({
+            mode: 'greet',
+            language: selectedLanguage,
+          });
+          setResponse(result); // Show greeting text
+
+          const audio = new Audio(result.audioResponse);
+          audio.play().catch((e) => {
+            console.error('Greeting audio playback failed:', e);
+            setResponse(null); // Clear greeting
+            handleListen(); // Fallback to listening
+          });
+
+          audio.onended = () => {
+            setResponse(null); // Clear greeting text
+            handleListen(); // Start listening automatically
+          };
+        } catch (error) {
+          console.error('Failed to get greeting:', error);
+          toast({
+            variant: 'destructive',
+            title: 'Assistant Error',
+            description: 'Could not start the assistant.',
+          });
+        } finally {
+          setIsGreeting(false);
+        }
+      };
+      getGreetingAndListen();
+    }
+    prevIsOpen.current = isOpen;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, selectedLanguage]);
+
   const handleOpenChange = (open: boolean) => {
     if (!open) {
       if (isListening) recognitionRef.current?.stop();
@@ -125,19 +195,6 @@ export default function VoiceAssistantDialog() {
       setMicError(null);
     }
     setIsOpen(open);
-  };
-
-  const handleListen = () => {
-    if (isListening) {
-      recognitionRef.current?.stop();
-    } else {
-      setMicError(null);
-      setResponse(null);
-      // clear command before listening
-      setValue('command', '');
-      setIsListening(true);
-      recognitionRef.current?.start();
-    }
   };
 
   const playAudio = (audioDataUri: string) => {
@@ -159,7 +216,7 @@ export default function VoiceAssistantDialog() {
     setIsLoading(true);
     setResponse(null);
     try {
-      const result = await voiceAssistant(data);
+      const result = await voiceAssistant({ ...data, mode: 'respond' });
       setResponse(result);
       playAudio(result.audioResponse);
     } catch (error: any) {
@@ -179,6 +236,8 @@ export default function VoiceAssistantDialog() {
     }
   };
 
+  const isAssistantSpeaking = response && !isLoading;
+
   return (
     <>
       <Button
@@ -196,7 +255,13 @@ export default function VoiceAssistantDialog() {
               <Bot /> Voice Assistant
             </DialogTitle>
             <DialogDescription>
-              Click the mic to speak, or type your question and press Ask.
+              {isGreeting && 'The assistant is starting...'}
+              {isListening && 'Listening for your question...'}
+              {isAssistantSpeaking && (
+                <span className="italic">"{response.responseText}"</span>
+              )}
+              {!isGreeting && !isListening && !isAssistantSpeaking &&
+                'Ask a question about your pet.'}
             </DialogDescription>
           </DialogHeader>
 
@@ -219,7 +284,9 @@ export default function VoiceAssistantDialog() {
                     <Textarea
                       id="command"
                       placeholder={
-                        isListening
+                        isGreeting
+                          ? 'Starting up...'
+                          : isListening
                           ? 'Listening...'
                           : 'e.g., "My dog is not eating."'
                       }
@@ -234,7 +301,7 @@ export default function VoiceAssistantDialog() {
                   variant="ghost"
                   size="icon"
                   onClick={handleListen}
-                  disabled={!recognitionRef.current}
+                  disabled={!recognitionRef.current || isGreeting}
                   className="absolute right-1 bottom-1 h-8 w-8 text-muted-foreground"
                   aria-label={
                     isListening ? 'Stop listening' : 'Start listening'
@@ -286,7 +353,11 @@ export default function VoiceAssistantDialog() {
             </div>
 
             <DialogFooter>
-              <Button type="submit" disabled={isLoading} className="w-full">
+              <Button
+                type="submit"
+                disabled={isLoading || isGreeting}
+                className="w-full"
+              >
                 {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -299,7 +370,7 @@ export default function VoiceAssistantDialog() {
             </DialogFooter>
           </form>
 
-          {response && (
+          {isAssistantSpeaking && (
             <div className="mt-4">
               <Alert>
                 <AlertTitle className="flex items-center justify-between">
