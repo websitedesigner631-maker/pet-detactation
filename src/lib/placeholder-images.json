@@ -1,3 +1,70 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "hero-dog",
+      "description": "A happy dog sitting in a field of flowers.",
+      "imageUrl": "https://picsum.photos/seed/heroDog/800/600",
+      "imageHint": "happy dog"
+    },
+    {
+      "id": "buddy-avatar",
+      "description": "Avatar for a golden retriever named Buddy.",
+      "imageUrl": "https://picsum.photos/seed/buddy/200/200",
+      "imageHint": "golden retriever"
+    },
+    {
+      "id": "lucy-avatar",
+      "description": "Avatar for a siamese cat named Lucy.",
+      "imageUrl": "https://picsum.photos/seed/lucy/200/200",
+      "imageHint": "siamese cat"
+    },
+    {
+      "id": "food-carrots",
+      "description": "Image of carrots for the pet food guide.",
+      "imageUrl": "https://picsum.photos/seed/carrots/300/200",
+      "imageHint": "carrots"
+    },
+    {
+      "id": "food-chicken",
+      "description": "Image of cooked chicken for the pet food guide.",
+      "imageUrl": "https://picsum.photos/seed/chicken/300/200",
+      "imageHint": "cooked chicken"
+    },
+    {
+      "id": "food-chocolate",
+      "description": "Image of chocolate to avoid for pets.",
+      "imageUrl": "https://picsum.photos/seed/chocolate/300/200",
+      "imageHint": "chocolate bar"
+    },
+    {
+      "id": "food-grapes",
+      "description": "Image of grapes to avoid for pets.",
+      "imageUrl": "https://picsum.photos/seed/grapes/300/200",
+      "imageHint": "grapes"
+    },
+    {
+      "id": "food-puppy",
+      "description": "Image representing puppy diet.",
+      "imageUrl": "https://picsum.photos/seed/puppy/300/200",
+      "imageHint": "puppy food"
+    },
+    {
+      "id": "food-senior-cat",
+      "description": "Image representing senior cat diet.",
+      "imageUrl": "https://picsum.photos/seed/seniorcat/300/200",
+      "imageHint": "senior cat"
+    },
+    {
+      "id": "lost-pet-max",
+      "description": "Photo of a lost dog named Max.",
+      "imageUrl": "https://picsum.photos/seed/maxlost/300/300",
+      "imageHint": "brown dog"
+    },
+    {
+      "id": "lost-pet-whiskers",
+      "description": "Photo of a lost cat named Whiskers.",
+      "imageUrl": "https://picsum.photos/seed/whiskerslost/300/300",
+      "imageHint": "black white cat"
+    }
+  ]
 }
