@@ -7,7 +7,7 @@ import {
   CookingPot,
   MapPin,
   Search,
-  Bell,
+  Calendar,
   HeartPulse,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -24,7 +24,7 @@ const featureLinks: {
   { href: '/food-guide', icon: CookingPot, label: 'Food Guide' },
   { href: '/nearby-services', icon: MapPin, label: 'Nearby' },
   { href: '/lost-pet', icon: Search, label: 'Lost Pet' },
-  { href: '/reminders', icon: Bell, label: 'Reminders' },
+  { href: '/schedule', icon: Calendar, label: 'Schedule' },
 ];
 
 function FeatureButton({

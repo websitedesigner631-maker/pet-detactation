@@ -1,13 +1,39 @@
 import Image from 'next/image';
 import { notFound } from 'next/navigation';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { FileText, Syringe, HeartPulse, Bone, Scale, Calendar } from 'lucide-react';
-import { pets, healthHistory } from '@/lib/data';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import {
+  MoreVertical,
+  CheckCircle,
+  FileText,
+  User,
+  PawPrint,
+  Cake,
+  Scale,
+} from 'lucide-react';
+import { pets } from '@/lib/data';
 import PageHeader from '@/components/page-header';
+import Link from 'next/link';
 
-export default function PetDetailPage({ params }: { params: { id: string } }) {
+const InfoRow = ({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: React.ElementType;
+  label: string;
+  value: string;
+}) => (
+  <div className="flex items-center justify-between p-4 rounded-lg bg-card">
+    <div className="flex items-center gap-3">
+      <Icon className="h-5 w-5 text-primary" />
+      <span className="font-semibold">{label}</span>
+    </div>
+    <span className="text-muted-foreground">{value}</span>
+  </div>
+);
+
+export default function PetProfilePage({ params }: { params: { id: string } }) {
   const pet = pets.find((p) => p.id === params.id);
 
   if (!pet) {
@@ -15,117 +41,62 @@ export default function PetDetailPage({ params }: { params: { id: string } }) {
   }
 
   return (
-    <div>
-      <PageHeader title={pet.name} />
-      <div className="p-4 space-y-6">
-        <Card>
-          <CardContent className="p-4 flex items-center gap-6">
+    <div className="bg-muted/30">
+      <PageHeader title="Pet Profile">
+        <Button variant="ghost" size="icon">
+          <MoreVertical />
+        </Button>
+      </PageHeader>
+
+      <div className="p-4 space-y-5">
+        <Card className="rounded-3xl overflow-hidden shadow-lg border-0">
+          <div className="relative">
             <Image
               src={pet.avatarUrl}
               alt={pet.name}
-              width={80}
-              height={80}
-              className="rounded-full border-4 border-primary/20 object-cover aspect-square"
+              width={600}
+              height={400}
+              className="w-full h-80 object-cover"
               data-ai-hint={`${pet.breed}`}
+              priority
             />
-            <div className="grid grid-cols-3 gap-x-4 gap-y-2 text-center w-full">
-              <div className="space-y-1">
-                <p className="text-sm text-muted-foreground">Age</p>
-                <p className="font-bold">{pet.age} yrs</p>
-              </div>
-              <div className="space-y-1">
-                <p className="text-sm text-muted-foreground">Weight</p>
-                <p className="font-bold">{pet.weight} kg</p>
-              </div>
-              <div className="space-y-1">
-                <p className="text-sm text-muted-foreground">Breed</p>
-                <p className="font-bold truncate">{pet.breed}</p>
-              </div>
+            <div className="absolute bottom-4 left-4 bg-card/80 backdrop-blur-sm p-3 rounded-2xl shadow-md">
+              <h2 className="text-2xl font-bold text-card-foreground">{pet.name}</h2>
+              <p className="text-muted-foreground">{pet.breed}</p>
+            </div>
+          </div>
+        </Card>
+
+        <Card className="rounded-2xl border-green-200 bg-green-50/50 dark:bg-green-900/20">
+          <CardContent className="p-4 flex items-center gap-4">
+            <div className="bg-green-500 text-white h-9 w-9 flex items-center justify-center rounded-full">
+              <CheckCircle className="h-6 w-6" />
+            </div>
+            <div>
+              <p className="font-bold text-green-700 dark:text-green-300">Vaccinations Up to Date</p>
+              <p className="text-sm text-muted-foreground">Last checked: Oct 12, 2023</p>
             </div>
           </CardContent>
         </Card>
 
-        <Tabs defaultValue="history">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="history">History</TabsTrigger>
-            <TabsTrigger value="vaccines">Vaccines</TabsTrigger>
-            <TabsTrigger value="records">Records</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="history" className="mt-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Health History</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {healthHistory.map((event) => (
-                  <div key={event.id} className="flex gap-4">
-                    <div className="flex flex-col items-center">
-                      <div className="h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center">
-                        <HeartPulse className="h-4 w-4" />
-                      </div>
-                      <div className="w-px flex-grow bg-border" />
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">{event.date}</p>
-                      <p className="font-semibold">{event.title}</p>
-                      <p className="text-sm text-muted-foreground">{event.details}</p>
-                    </div>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="vaccines" className="mt-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Vaccination Schedule</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Vaccine</TableHead>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Next Due</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {pet.vaccinations.map((vax) => (
-                      <TableRow key={vax.id}>
-                        <TableCell className="font-medium">{vax.vaccine}</TableCell>
-                        <TableCell>{vax.date}</TableCell>
-                        <TableCell>{vax.nextDueDate || 'N/A'}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="records" className="mt-4">
-             <Card>
-                <CardHeader>
-                    <CardTitle>Medical Records</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    {pet.medicalRecords.length > 0 ? pet.medicalRecords.map(rec => (
-                        <div key={rec.id} className="flex items-center justify-between p-3 bg-card rounded-lg border">
-                            <div>
-                                <p className="font-semibold">{rec.title}</p>
-                                <p className="text-sm text-muted-foreground">{rec.date}</p>
-                            </div>
-                            <FileText className="h-5 w-5 text-primary"/>
-                        </div>
-                    )) : (
-                        <p className="text-center text-muted-foreground py-4">No medical records uploaded.</p>
-                    )}
-                </CardContent>
-             </Card>
-          </TabsContent>
-        </Tabs>
+        <div className="space-y-3">
+          <h3 className="text-sm font-bold uppercase text-muted-foreground px-2">
+            General Information
+          </h3>
+          <div className="space-y-2">
+            <InfoRow icon={User} label="Name" value={pet.name} />
+            <InfoRow icon={PawPrint} label="Type" value={pet.petType} />
+            <InfoRow icon={Cake} label="Age" value={`${pet.age} Years`} />
+            <InfoRow icon={Scale} label="Weight" value={`${pet.weight} kg`} />
+          </div>
+        </div>
+        
+        <Link href={`/pets/${pet.id}/history`}>
+          <Button size="lg" className="w-full h-14 text-lg rounded-xl shadow-md">
+            <FileText className="mr-3" />
+            View Medical History
+          </Button>
+        </Link>
       </div>
     </div>
   );
