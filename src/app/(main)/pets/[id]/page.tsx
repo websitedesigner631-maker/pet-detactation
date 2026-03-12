@@ -1,3 +1,5 @@
+'use client';
+
 import Image from 'next/image';
 import { notFound } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -21,11 +23,15 @@ import {
   HeartPulse,
   Sparkles,
   Bone,
+  BrainCircuit,
+  Loader2,
 } from 'lucide-react';
 import { pets } from '@/lib/data';
 import PageHeader from '@/components/page-header';
 import Link from 'next/link';
 import { getPetCareInfo, type PetCareInfoOutput } from '@/ai/flows/get-pet-care-info';
+import { useState } from 'react';
+import { useToast } from '@/hooks/use-toast';
 
 const InfoRow = ({
   icon: Icon,
@@ -98,20 +104,38 @@ function CareGuide({ careInfo, breed }: { careInfo: PetCareInfoOutput, breed: st
     );
   }
 
-export default async function PetProfilePage({ params }: { params: { id: string } }) {
+export default function PetProfilePage({ params }: { params: { id: string } }) {
+  const [careInfo, setCareInfo] = useState<PetCareInfoOutput | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
+  
   const pet = pets.find((p) => p.id === params.id);
 
   if (!pet) {
     notFound();
   }
-
-  let careInfo: PetCareInfoOutput | null = null;
-  try {
-    careInfo = await getPetCareInfo({ petType: pet.petType, breed: pet.breed });
-  } catch (e) {
-    console.error("Failed to get pet care info:", e);
-    // Handle error gracefully, maybe show a message to the user
-  }
+  
+  const handleGenerateCareGuide = async () => {
+    setIsLoading(true);
+    setCareInfo(null);
+    try {
+      const result = await getPetCareInfo({ petType: pet.petType, breed: pet.breed });
+      setCareInfo(result);
+      toast({
+        title: "Care Guide Generated!",
+        description: `AI-powered care info for the ${pet.breed} breed is ready.`,
+      });
+    } catch (e) {
+      console.error("Failed to get pet care info:", e);
+      toast({
+        variant: "destructive",
+        title: "Generation Failed",
+        description: "The AI could not generate the care guide. This may be due to rate limits. Please try again later.",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
 
   return (
@@ -153,7 +177,23 @@ export default async function PetProfilePage({ params }: { params: { id: string 
           </CardContent>
         </Card>
 
-        {careInfo && <CareGuide careInfo={careInfo} breed={pet.breed} />}
+        {careInfo ? (
+            <CareGuide careInfo={careInfo} breed={pet.breed} />
+        ) : (
+            <Button onClick={handleGenerateCareGuide} disabled={isLoading} className="w-full h-14 text-lg rounded-xl shadow-md">
+                {isLoading ? (
+                    <>
+                        <Loader2 className="mr-3 animate-spin" />
+                        Generating Guide...
+                    </>
+                ) : (
+                    <>
+                        <BrainCircuit className="mr-3" />
+                        Generate AI Breed Guide
+                    </>
+                )}
+            </Button>
+        )}
 
         <div className="space-y-3">
           <h3 className="text-sm font-bold uppercase text-muted-foreground px-2">
