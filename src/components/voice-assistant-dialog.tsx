@@ -74,12 +74,15 @@ export default function VoiceAssistantDialog() {
       const result = await voiceAssistant(data);
       setResponse(result);
       playAudio(result.audioResponse);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Voice assistant error:', error);
+      const isRateLimitError = error?.message?.includes('RESOURCE_EXHAUSTED') || error?.message?.includes('429');
       toast({
         variant: 'destructive',
         title: 'AI Error',
-        description: 'Could not get a response from the assistant.',
+        description: isRateLimitError
+          ? 'You have exceeded the request limit. Please wait a while and try again.'
+          : 'Could not get a response from the assistant.',
       });
     } finally {
       setIsLoading(false);

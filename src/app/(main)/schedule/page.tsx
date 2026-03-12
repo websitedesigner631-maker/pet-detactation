@@ -67,12 +67,15 @@ export default function SchedulePage() {
         title: 'Schedule Generated!',
         description: `A sample schedule for ${pet.name} has been created.`,
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Schedule Generation Error:', error);
+      const isRateLimitError = error?.message?.includes('RESOURCE_EXHAUSTED') || error?.message?.includes('429');
       toast({
         variant: 'destructive',
         title: 'Generation Failed',
-        description: 'The AI could not generate a schedule. Please try again.',
+        description: isRateLimitError
+          ? 'You have exceeded the request limit. Please wait a while and try again.'
+          : 'The AI could not generate a schedule. Please try again.',
       });
     } finally {
       setIsLoading(false);

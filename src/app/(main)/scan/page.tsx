@@ -78,12 +78,15 @@ export default function ScanPage() {
         petType,
       });
       setResult(output);
-    } catch (error) {
+    } catch (error: any) {
       console.error('AI Scan Error:', error);
+      const isRateLimitError = error?.message?.includes('RESOURCE_EXHAUSTED') || error?.message?.includes('429');
       toast({
         variant: 'destructive',
         title: 'Scan Failed',
-        description: 'The AI scanner could not analyze the image. Please try again.',
+        description: isRateLimitError
+          ? 'You have exceeded the request limit. Please wait a while and try again.'
+          : 'The AI scanner could not analyze the image. Please try again.',
       });
     } finally {
       setIsLoading(false);

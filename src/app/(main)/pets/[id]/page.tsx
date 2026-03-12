@@ -125,12 +125,15 @@ export default function PetProfilePage({ params }: { params: { id: string } }) {
         title: "Care Guide Generated!",
         description: `AI-powered care info for the ${pet.breed} breed is ready.`,
       });
-    } catch (e) {
+    } catch (e: any) {
       console.error("Failed to get pet care info:", e);
+      const isRateLimitError = e?.message?.includes('RESOURCE_EXHAUSTED') || e?.message?.includes('429');
       toast({
         variant: "destructive",
         title: "Generation Failed",
-        description: "The AI could not generate the care guide. This may be due to rate limits. Please try again later.",
+        description: isRateLimitError
+          ? "You have exceeded the request limit. Please wait a while and try again."
+          : "The AI could not generate the care guide. Please try again.",
       });
     } finally {
       setIsLoading(false);
