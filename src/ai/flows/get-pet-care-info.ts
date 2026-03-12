@@ -10,13 +10,13 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 
-export const PetCareInfoInputSchema = z.object({
+const PetCareInfoInputSchema = z.object({
   petType: z.string().describe('The type of pet (e.g., Dog, Cat).'),
   breed: z.string().describe('The breed of the pet.'),
 });
 export type PetCareInfoInput = z.infer<typeof PetCareInfoInputSchema>;
 
-export const PetCareInfoOutputSchema = z.object({
+const PetCareInfoOutputSchema = z.object({
   breedInfo: z.string().describe('A general description of the pet breed, including history, temperament, and size.'),
   careGuide: z.object({
     diet: z.string().describe('Dietary recommendations and feeding schedule.'),

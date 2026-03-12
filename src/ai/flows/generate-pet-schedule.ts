@@ -10,7 +10,7 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 
-export const GeneratePetScheduleInputSchema = z.object({
+const GeneratePetScheduleInputSchema = z.object({
   petType: z.string().describe('The type of pet (e.g., Dog, Cat).'),
   breed: z.string().describe('The breed of the pet.'),
   age: z.number().describe('The age of the pet in years.'),
@@ -24,7 +24,7 @@ const ScheduleItemSchema = z.object({
   category: z.enum(['Feeding', 'Exercise', 'Grooming', 'Training', 'Health', 'Other']).describe('The category of the task.'),
 });
 
-export const GeneratePetScheduleOutputSchema = z.object({
+const GeneratePetScheduleOutputSchema = z.object({
   suggestedSchedule: z.array(ScheduleItemSchema).describe('An array of suggested schedule items for the pet.'),
 });
 export type GeneratePetScheduleOutput = z.infer<typeof GeneratePetScheduleOutputSchema>;
