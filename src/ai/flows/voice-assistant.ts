@@ -54,14 +54,6 @@ const VoiceAssistantOutputSchema = z.object({
 });
 export type VoiceAssistantOutput = z.infer<typeof VoiceAssistantOutputSchema>;
 
-// Define the Prompt
-const voiceAssistantPrompt = ai.definePrompt({
-  name: 'voiceAssistantPrompt',
-  input: { schema: VoiceAssistantInputSchema },
-  output: { schema: z.string().describe('The AI generated simple, spoken response.') },
-  prompt: `You are a helpful and friendly pet care assistant for the "Smart Pet Care" mobile app.\nYour goal is to provide simple, concise, and easy-to-understand answers to pet owners' questions or commands.\nRespond in the specified language. If you cannot fulfill a request, politely state that you cannot.\n\nUser Command: {{{command}}}\nDesired Response Language: {{{language}}}\n\nPlease provide your simple response in {{language}}:`,
-});
-
 // Implement the Flow Logic
 const voiceAssistantFlow = ai.defineFlow(
   {
@@ -70,8 +62,20 @@ const voiceAssistantFlow = ai.defineFlow(
     outputSchema: VoiceAssistantOutputSchema,
   },
   async (input) => {
-    // Generate text response first using the prompt
-    const { output: textResponse } = await voiceAssistantPrompt(input);
+    // Generate text response first
+    const textGenPrompt = `You are a helpful and friendly pet care assistant for the "Smart Pet Care" mobile app.
+Your goal is to provide simple, concise, and easy-to-understand answers to pet owners' questions or commands.
+Respond in the specified language. If you cannot fulfill a request, politely state that you cannot.
+
+User Command: "${input.command}"
+Desired Response Language: "${input.language}"
+
+Please provide your simple response in ${input.language}:`;
+    
+    const llmResponse = await ai.generate({
+        prompt: textGenPrompt,
+    });
+    const textResponse = llmResponse.text;
 
     if (!textResponse) {
       throw new Error('Failed to get a text response from the AI.');
@@ -85,7 +89,7 @@ const voiceAssistantFlow = ai.defineFlow(
         responseModalities: ['AUDIO'],
         speechConfig: {
           voiceConfig: {
-            prebuiltVoiceConfig: { voiceName: 'Algenib' }, // Using a default voice, as specific multi-language voices are not detailed in the context.
+            prebuiltVoiceConfig: { voiceName: 'Algenib' },
           },
         },
       },
