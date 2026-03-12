@@ -170,13 +170,19 @@ export default function VoiceAssistantDialog() {
             setResponse(null); // Clear greeting text
             handleListen(); // Start listening automatically
           };
-        } catch (error) {
+        } catch (error: any) {
           console.error('Failed to get greeting:', error);
+          const isRateLimitError =
+            error?.message?.includes('RESOURCE_EXHAUSTED') ||
+            error?.message?.includes('429');
           toast({
             variant: 'destructive',
             title: 'Assistant Error',
-            description: 'Could not start the assistant.',
+            description: isRateLimitError
+              ? 'You have exceeded the request limit. Please wait a while and try again.'
+              : 'Could not start the assistant.',
           });
+          handleListen(); // Fallback to listening if greeting fails
         } finally {
           setIsGreeting(false);
         }
