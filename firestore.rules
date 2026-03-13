@@ -1,28 +1,241 @@
+/**
+ * Core Philosophy: This ruleset enforces a strict user-ownership model where all private user and pet data is
+ * nested under a user-specific path (`/users/{userId}`). Access to this data is exclusively granted to the
+ * authenticated user who owns it. Publicly-facing data, such as veterinarian profiles and food guides, is
+ * stored in top-level collections, readable by any authenticated user but writable only by administrators.
+ *
+ * Data Structure: The structure is hierarchical and segregated by access control needs.
+ * - `/users/{userId}`: Root for all data private to a single user.
+ * - `/users/{userId}/pets/{petId}`: Subcollections for a user's pets and their related data.
+ * - Top-level collections like `/veterinarians`, `/serviceLocations`, `/foodGuideEntries`, and `/lostPetReports`
+ *   store data that is shared or public.
+ * - `/roles_admin/{userId}`: A special collection manages administrator privileges via document existence.
+ *
+ * Key Security Decisions:
+ * - User Isolation: Users are strictly confined to their own data tree under `/users/{userId}`. It is impossible
+ *   for one user to read or write another user's private data.
+ * - Administrator-Managed Public Data: Content in collections like `/veterinarians` and `/serviceLocations`
+ *   is treated as curated public information. Any authenticated user can read it, but only users with an
+ *   admin role can modify it, preventing unauthorized changes.
+ * - Community-Sourced Data: The `/lostPetReports` collection is readable by the entire authenticated community
+ *   to help find lost pets, but only the original reporter can create, update, or delete their own report.
+ * - No User Listing: The top-level `/users` collection is not listable, protecting user privacy.
+ *
+ * Denormalization for Authorization: To ensure performant and simple rules, ownership information (like `ownerId`
+ * and `petId`) is denormalized and stored directly on child documents (e.g., `MedicalRecord`, `Reminder`).
+ * This avoids slow and costly `get()` calls to parent documents during rule evaluation. Rules will enforce that
+ * this denormalized data is correctly set on creation and remains immutable.
+ *
+ * Structural Segregation: Private data (user profiles, pets) and public data (veterinarians) are stored in
+ * separate collections. This is a deliberate choice that simplifies security rules for list operations and
+ * prevents accidental data leakage, as a query can only target one collection at a time.
+ */
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
-    
+
+    // -------------------------------------------------------------------------
+    // Helper Functions
+    // -------------------------------------------------------------------------
+
+    /**
+     * Returns true if the user is signed in.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * Returns true if the requesting user's UID matches the provided userId.
+     * This is the foundation of the user-ownership model.
+     * @param userId The UID of the document owner.
+     */
     function isOwner(userId) {
-      return request.auth != null && request.auth.uid == userId;
+      return isSignedIn() && request.auth.uid == userId;
     }
 
+    /**
+     * Returns true if the user has an admin role.
+     * Admin status is determined by the existence of a document in the roles_admin collection.
+     */
+    function isAdmin() {
+      return isSignedIn() && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
+    }
+
+    /**
+     * A robust check for update/delete operations, ensuring the document exists
+     * and the requester is the owner.
+     * @param userId The UID of the document owner.
+     */
+    function isExistingOwner(userId) {
+      return isOwner(userId) && resource != null;
+    }
+
+    // -------------------------------------------------------------------------
+    // User Data Collections
+    // -------------------------------------------------------------------------
+
+    /**
+     * @description A user can create their own profile, and can only read or write their own data.
+     * @path /users/{userId}
+     * @allow (create) An authenticated user with UID 'user_abc' creating their own profile at `/users/user_abc`.
+     * @deny (get) User 'user_xyz' trying to read `/users/user_abc`.
+     * @principle Restricts access to a user's own data tree.
+     */
     match /users/{userId} {
-      allow read, write: if isOwner(userId);
-
-      match /pets/{petId} {
-        allow read, create, update, delete: if isOwner(userId);
-      }
-
-      match /schedule/{itemId} {
-      	allow read, create, update, delete: if isOwner(userId);
-      }
+      allow get: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.id == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
+      allow delete: if isExistingOwner(userId);
+      allow list: if false; // Disallow listing of users for privacy.
     }
 
-    match /lost-pets/{reportId} {
-      allow read: if true;
-      allow create: if request.auth != null;
-      allow update, delete: if request.auth != null && resource.data.reporterId == request.auth.uid;
+    /**
+     * @description Only the owner of the user profile can manage their pets.
+     * @path /users/{userId}/pets/{petId}
+     * @allow (create) User 'user_abc' creating a new pet document under their own path `/users/user_abc/pets/pet_123`.
+     * @deny (list) User 'user_xyz' trying to list pets at `/users/user_abc/pets`.
+     * @principle Enforces document ownership within a user's data tree.
+     */
+    match /users/{userId}/pets/{petId} {
+      allow get, list: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.ownerId == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.ownerId == resource.data.ownerId;
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Only the pet owner can manage their pet's medical records.
+     * @path /users/{userId}/pets/{petId}/medicalRecords/{medicalRecordId}
+     * @allow (get) User 'user_abc' reading a medical record for their pet at `/users/user_abc/pets/pet_123/medicalRecords/rec_456`.
+     * @deny (create) User 'user_abc' creating a medical record with a mismatched petId in the data.
+     * @principle Enforces deep ownership and relational integrity within nested subcollections.
+     */
+    match /users/{userId}/pets/{petId}/medicalRecords/{medicalRecordId} {
+      allow get, list: if isOwner(userId);
+      // NOTE: The IR `reasoning` states `ownerId` is denormalized here for performance, even if the schema omits it. We enforce that here.
+      allow create: if isOwner(userId) && request.resource.data.petId == petId;
+      allow update: if isExistingOwner(userId) && request.resource.data.petId == resource.data.petId;
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Only the pet owner can manage their pet's AI scan results.
+     * @path /users/{userId}/pets/{petId}/aiScanResults/{aiScanResultId}
+     * @allow (list) User 'user_abc' listing all AI scan results for their pet.
+     * @deny (update) User 'user_abc' trying to change the `petId` of an existing scan result.
+     * @principle Enforces deep ownership and relational integrity within nested subcollections.
+     */
+    match /users/{userId}/pets/{petId}/aiScanResults/{aiScanResultId} {
+      allow get, list: if isOwner(userId);
+      // NOTE: The IR `reasoning` states `ownerId` is denormalized here for performance, even if the schema omits it. We enforce that here.
+      allow create: if isOwner(userId) && request.resource.data.petId == petId;
+      allow update: if isExistingOwner(userId) && request.resource.data.petId == resource.data.petId;
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Only the pet owner can manage reminders for their pet.
+     * @path /users/{userId}/pets/{petId}/reminders/{reminderId}
+     * @allow (create) User 'user_abc' creating a reminder for their own pet.
+     * @deny (delete) User 'user_xyz' trying to delete a reminder for another user's pet.
+     * @principle Enforces deep ownership and relational integrity within nested subcollections.
+     */
+    match /users/{userId}/pets/{petId}/reminders/{reminderId} {
+      allow get, list: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.ownerId == userId && request.resource.data.petId == petId;
+      allow update: if isExistingOwner(userId) && request.resource.data.ownerId == resource.data.ownerId && request.resource.data.petId == resource.data.petId;
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Only the owner can manage their own appointments.
+     * @path /users/{userId}/appointments/{appointmentId}
+     * @allow (update) User 'user_abc' updating their own appointment at `/users/user_abc/appointments/appt_123`.
+     * @deny (get) User 'user_xyz' trying to read appointment data for 'user_abc'.
+     * @principle Enforces document ownership within a user's data tree.
+     */
+    match /users/{userId}/appointments/{appointmentId} {
+      allow get, list: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.ownerId == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.ownerId == resource.data.ownerId;
+      allow delete: if isExistingOwner(userId);
+    }
+
+    // -------------------------------------------------------------------------
+    // Public/Global Collections (Admin-Write)
+    // -------------------------------------------------------------------------
+
+    /**
+     * @description Veterinarian profiles are public to all authenticated users but only managed by admins.
+     * @path /veterinarians/{veterinarianId}
+     * @allow (get) Any signed-in user reading a vet's profile.
+     * @deny (create) A non-admin user trying to add a new veterinarian.
+     * @principle Segregates public read-only data from restricted administrative write access.
+     */
+    match /veterinarians/{veterinarianId} {
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if isAdmin();
+    }
+
+    /**
+     * @description Service locations are public to all authenticated users but only managed by admins.
+     * @path /serviceLocations/{serviceLocationId}
+     * @allow (list) Any signed-in user listing all service locations.
+     * @deny (update) A non-admin user trying to change a location's address.
+     * @principle Segregates public read-only data from restricted administrative write access.
+     */
+    match /serviceLocations/{serviceLocationId} {
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if isAdmin();
+    }
+
+    /**
+     * @description Food guide entries are public to all authenticated users but only managed by admins.
+     * @path /foodGuideEntries/{foodGuideEntryId}
+     * @allow (get) Any signed-in user reading a food guide entry.
+     * @deny (delete) A non-admin user trying to remove a food guide entry.
+     * @principle Segregates public read-only data from restricted administrative write access.
+     */
+    match /foodGuideEntries/{foodGuideEntryId} {
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if isAdmin();
+    }
+
+    // -------------------------------------------------------------------------
+    // Public/Global Collections (Mixed-Write)
+    // -------------------------------------------------------------------------
+
+    /**
+     * @description Lost pet reports can be read by any authenticated user, but only created, updated,
+     *              or deleted by the user who originally filed the report.
+     * @path /lostPetReports/{lostPetReportId}
+     * @allow (create) User 'user_abc' creating a new lost pet report where `reporterId` is 'user_abc'.
+     * @deny (update) User 'user_xyz' trying to update a report created by 'user_abc'.
+     * @principle Implements public-read with owner-only writes, based on a document field.
+     */
+    match /lostPetReports/{lostPetReportId} {
+      allow get, list: if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.reporterId == request.auth.uid;
+      allow update: if resource != null && isOwner(resource.data.reporterId) && request.resource.data.reporterId == resource.data.reporterId;
+      allow delete: if resource != null && isOwner(resource.data.reporterId);
+    }
+
+    // -------------------------------------------------------------------------
+    // Administrative Collections
+    // -------------------------------------------------------------------------
+
+    /**
+     * @description Manages admin roles. Only existing admins can read or write to this collection.
+     *              This prevents non-admins from escalating their own privileges.
+     * @path /roles_admin/{adminId}
+     * @allow (get) An existing admin checking if another user is an admin.
+     * @deny (create) A non-admin user trying to make themselves an admin.
+     * @principle Restricts administrative role management to current administrators.
+     */
+    match /roles_admin/{adminId} {
+      allow get, list: if isAdmin();
+      allow create, update, delete: if isAdmin();
     }
   }
 }

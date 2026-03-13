@@ -1,82 +1,756 @@
 {
   "entities": {
-    "UserProfile": {
-      "title": "User Profile",
-      "description": "Represents a user's profile information.",
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
       "type": "object",
+      "description": "Represents a user of the Smart Pet Care application. Authentication is handled externally, so minimal user data is stored here.",
       "properties": {
-        "email": {
+        "id": {
           "type": "string",
-          "format": "email",
-          "description": "The user's email address."
+          "description": "Unique identifier for the User entity."
         },
-        "displayName": {
+        "name": {
           "type": "string",
-          "description": "The user's display name."
+          "description": "The user's full name, for personalization."
+        },
+        "contactNumber": {
+          "type": "string",
+          "description": "The user's primary contact phone number, used for features like lost pet alerts or emergency contacts.",
+          "format": "phone"
+        },
+        "languagePreference": {
+          "type": "string",
+          "description": "The user's preferred language for voice assistant and application text.",
+          "format": "enum"
         }
       },
-      "required": ["email"]
+      "required": [
+        "id",
+        "languagePreference"
+      ]
     },
     "Pet": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Pet",
-      "description": "Represents a pet.",
       "type": "object",
+      "description": "Represents an individual pet managed by a user.",
       "properties": {
-        "name": { "type": "string" },
-        "petType": { "type": "string", "enum": ["Dog", "Cat", "Bird", "Other"] },
-        "breed": { "type": "string" },
-        "age": { "type": "number" },
-        "weight": { "type": "number" },
-        "avatarUrl": { "type": "string", "format": "uri" }
-      },
-      "required": ["name", "petType", "breed", "age", "weight"]
-    },
-    "ScheduleItem": {
-        "title": "Schedule Item",
-        "description": "A single item in a pet's schedule.",
-        "type": "object",
-        "properties": {
-            "title": { "type": "string" },
-            "time": { "type": "string" },
-            "category": { "type": "string" },
-            "petId": { "type": "string" }
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Pet entity."
         },
-        "required": ["title", "time", "category", "petId"]
+        "ownerId": {
+          "type": "string",
+          "description": "Reference to the User who owns this pet. (Relationship: User 1:N Pet)"
+        },
+        "name": {
+          "type": "string",
+          "description": "The pet's given name."
+        },
+        "type": {
+          "type": "string",
+          "description": "The general type of pet (e.g., Dog, Cat, Bird, Other).",
+          "format": "enum"
+        },
+        "breed": {
+          "type": "string",
+          "description": "The specific breed of the pet."
+        },
+        "birthDate": {
+          "type": "string",
+          "description": "The pet's date of birth, used to calculate age and provide age-specific recommendations.",
+          "format": "date"
+        },
+        "weight": {
+          "type": "number",
+          "description": "The pet's weight, typically in kilograms or pounds."
+        },
+        "profileImageUrl": {
+          "type": "string",
+          "description": "URL to the pet's profile picture.",
+          "format": "uri"
+        }
+      },
+      "required": [
+        "id",
+        "ownerId",
+        "name",
+        "type",
+        "breed",
+        "birthDate",
+        "weight"
+      ]
+    },
+    "MedicalRecord": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "MedicalRecord",
+      "type": "object",
+      "description": "Stores various medical records for a pet, including vaccinations, lab reports, and vet notes.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the MedicalRecord entity."
+        },
+        "petId": {
+          "type": "string",
+          "description": "Reference to the Pet this medical record belongs to. (Relationship: Pet 1:N MedicalRecord)"
+        },
+        "recordType": {
+          "type": "string",
+          "description": "The type of medical record (e.g., Vaccination, LabReport, Prescription, VetNote, Other).",
+          "format": "enum"
+        },
+        "title": {
+          "type": "string",
+          "description": "A brief title or summary of the medical record (e.g., 'Rabies Vaccine', 'Blood Test Results')."
+        },
+        "date": {
+          "type": "string",
+          "description": "The date when the medical event occurred or the report was issued.",
+          "format": "date-time"
+        },
+        "description": {
+          "type": "string",
+          "description": "Detailed description or notes about the medical record."
+        },
+        "fileUrl": {
+          "type": "string",
+          "description": "URL to an uploaded image or PDF file associated with this medical record.",
+          "format": "uri"
+        },
+        "nextDueDate": {
+          "type": "string",
+          "description": "The next due date for a recurring event like a booster vaccination or follow-up checkup. Used for reminders.",
+          "format": "date-time"
+        },
+        "veterinarianId": {
+          "type": "string",
+          "description": "Optional reference to the Veterinarian who provided this record. (Relationship: Veterinarian 1:N MedicalRecord)"
+        }
+      },
+      "required": [
+        "id",
+        "petId",
+        "recordType",
+        "title",
+        "date",
+        "description"
+      ]
+    },
+    "AIScanResult": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "AIScanResult",
+      "type": "object",
+      "description": "Stores the input and output of an AI-powered pet disease scan.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the AIScanResult entity."
+        },
+        "petId": {
+          "type": "string",
+          "description": "Reference to the Pet that was scanned. (Relationship: Pet 1:N AIScanResult)"
+        },
+        "scanDate": {
+          "type": "string",
+          "description": "The date and time when the AI scan was performed.",
+          "format": "date-time"
+        },
+        "mediaUrl": {
+          "type": "string",
+          "description": "URL to the photo or video uploaded by the user for the scan.",
+          "format": "uri"
+        },
+        "detectedProblems": {
+          "type": "array",
+          "description": "A list of possible health problems detected by the AI system.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "explanation": {
+          "type": "string",
+          "description": "A simple explanation of the detected problems and their potential implications."
+        },
+        "suggestedCareSteps": {
+          "type": "string",
+          "description": "Initial suggested care steps or advice based on the scan results."
+        },
+        "confidenceScore": {
+          "type": "number",
+          "description": "An optional numerical score indicating the AI's confidence in its detection."
+        }
+      },
+      "required": [
+        "id",
+        "petId",
+        "scanDate",
+        "mediaUrl",
+        "detectedProblems",
+        "explanation",
+        "suggestedCareSteps"
+      ]
+    },
+    "Veterinarian": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Veterinarian",
+      "type": "object",
+      "description": "Represents an individual veterinarian available for consultation.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Veterinarian entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The full name of the veterinarian."
+        },
+        "contactNumber": {
+          "type": "string",
+          "description": "The veterinarian's contact phone number.",
+          "format": "phone"
+        },
+        "email": {
+          "type": "string",
+          "description": "The veterinarian's email address.",
+          "format": "email"
+        },
+        "specialties": {
+          "type": "array",
+          "description": "A list of specialties or areas of expertise for the veterinarian.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "profileImageUrl": {
+          "type": "string",
+          "description": "URL to the veterinarian's profile picture.",
+          "format": "uri"
+        },
+        "associatedServiceLocationIds": {
+          "type": "array",
+          "description": "References to ServiceLocation entities where this veterinarian practices. (Relationship: Veterinarian N:N ServiceLocation)",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "contactNumber",
+        "specialties"
+      ]
+    },
+    "ServiceLocation": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ServiceLocation",
+      "type": "object",
+      "description": "Represents a physical business location offering pet services (e.g., clinics, hospitals, pet shops).",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the ServiceLocation entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the service location (e.g., 'City Pet Clinic', 'Happy Tails Grooming')."
+        },
+        "type": {
+          "type": "string",
+          "description": "The type of service provided by this location (e.g., VeterinaryClinic, AnimalHospital, PetShop, GroomingCenter, AnimalShelter).",
+          "format": "enum"
+        },
+        "address": {
+          "type": "string",
+          "description": "The full physical address of the service location."
+        },
+        "latitude": {
+          "type": "number",
+          "description": "The geographical latitude of the service location."
+        },
+        "longitude": {
+          "type": "number",
+          "description": "The geographical longitude of the service location."
+        },
+        "contactNumber": {
+          "type": "string",
+          "description": "The primary contact phone number for the service location.",
+          "format": "phone"
+        },
+        "email": {
+          "type": "string",
+          "description": "The email address for the service location.",
+          "format": "email"
+        },
+        "websiteUrl": {
+          "type": "string",
+          "description": "The official website URL for the service location.",
+          "format": "uri"
+        },
+        "operatingHours": {
+          "type": "string",
+          "description": "A description of the operating hours (e.g., 'Mon-Fri: 9am-5pm', '24/7')."
+        },
+        "description": {
+          "type": "string",
+          "description": "A brief description of the services offered at this location."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "type",
+        "address",
+        "latitude",
+        "longitude",
+        "contactNumber"
+      ]
+    },
+    "Appointment": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Appointment",
+      "type": "object",
+      "description": "Records scheduled appointments between a pet owner, their pet, and a veterinary service provider.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Appointment entity."
+        },
+        "petId": {
+          "type": "string",
+          "description": "Reference to the Pet for whom the appointment is booked. (Relationship: Pet 1:N Appointment)"
+        },
+        "ownerId": {
+          "type": "string",
+          "description": "Reference to the User who booked the appointment. (Relationship: User 1:N Appointment)"
+        },
+        "serviceLocationId": {
+          "type": "string",
+          "description": "Reference to the ServiceLocation where the appointment will take place. (Relationship: ServiceLocation 1:N Appointment)"
+        },
+        "veterinarianId": {
+          "type": "string",
+          "description": "Optional reference to a specific Veterinarian for the appointment, if chosen. (Relationship: Veterinarian 1:N Appointment)"
+        },
+        "appointmentDateTime": {
+          "type": "string",
+          "description": "The scheduled date and time of the appointment.",
+          "format": "date-time"
+        },
+        "reasonForVisit": {
+          "type": "string",
+          "description": "The reason or purpose of the appointment."
+        },
+        "status": {
+          "type": "string",
+          "description": "The current status of the appointment (e.g., Scheduled, Completed, Canceled, Rescheduled).",
+          "format": "enum"
+        },
+        "notes": {
+          "type": "string",
+          "description": "Any additional notes or summary from the appointment, often added post-visit."
+        }
+      },
+      "required": [
+        "id",
+        "petId",
+        "ownerId",
+        "serviceLocationId",
+        "appointmentDateTime",
+        "reasonForVisit",
+        "status"
+      ]
+    },
+    "FoodGuideEntry": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "FoodGuideEntry",
+      "type": "object",
+      "description": "Provides information and recommendations for specific food items for pets.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the FoodGuideEntry entity."
+        },
+        "foodName": {
+          "type": "string",
+          "description": "The common name of the food item (e.g., 'Apple', 'Chocolate')."
+        },
+        "category": {
+          "type": "string",
+          "description": "The food category (e.g., 'Fruits', 'Vegetables', 'Meats', 'Processed Foods')."
+        },
+        "safetyRating": {
+          "type": "string",
+          "description": "Rating indicating the safety of the food for pets (e.g., 'Safe', 'Moderation', 'Harmful').",
+          "format": "enum"
+        },
+        "generalDescription": {
+          "type": "string",
+          "description": "A general description of the food item."
+        },
+        "petTypeCompatibility": {
+          "type": "array",
+          "description": "A list of pet types for which this food item is relevant (e.g., 'Dog', 'Cat', 'Bird', 'Other').",
+          "items": {
+            "type": "string"
+          }
+        },
+        "breedConsiderations": {
+          "type": "string",
+          "description": "Specific considerations or recommendations based on pet breed (e.g., 'Good for large breeds, avoid for small breeds')."
+        },
+        "ageConsiderations": {
+          "type": "string",
+          "description": "Specific considerations or recommendations based on pet age (e.g., 'Suitable for puppies, not recommended for seniors')."
+        },
+        "nutritionalBenefits": {
+          "type": "string",
+          "description": "Description of any nutritional benefits."
+        },
+        "risks": {
+          "type": "string",
+          "description": "Description of potential risks or side effects if consumed."
+        }
+      },
+      "required": [
+        "id",
+        "foodName",
+        "category",
+        "safetyRating",
+        "generalDescription",
+        "petTypeCompatibility"
+      ]
+    },
+    "Reminder": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Reminder",
+      "type": "object",
+      "description": "Manages automated health reminders for pet care activities.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Reminder entity."
+        },
+        "ownerId": {
+          "type": "string",
+          "description": "Reference to the User who set or receives this reminder. (Relationship: User 1:N Reminder)"
+        },
+        "petId": {
+          "type": "string",
+          "description": "Reference to the Pet for whom this reminder is set. (Relationship: Pet 1:N Reminder)"
+        },
+        "type": {
+          "type": "string",
+          "description": "The type of reminder (e.g., Vaccination, Feeding, Medication, Checkup, Other).",
+          "format": "enum"
+        },
+        "scheduledDateTime": {
+          "type": "string",
+          "description": "The date and time when the reminder is scheduled to occur.",
+          "format": "date-time"
+        },
+        "description": {
+          "type": "string",
+          "description": "A brief description of the reminder's purpose (e.g., 'Give flea medication', 'Annual vet checkup')."
+        },
+        "isCompleted": {
+          "type": "boolean",
+          "description": "Indicates whether the reminder task has been completed."
+        },
+        "recurrencePattern": {
+          "type": "string",
+          "description": "Describes how often the reminder should repeat (e.g., 'Once', 'Daily', 'Weekly', 'Monthly', 'Yearly').",
+          "format": "enum"
+        },
+        "relatedMedicalRecordId": {
+          "type": "string",
+          "description": "Optional reference to a MedicalRecord entity, if the reminder is for a specific medical event like a vaccine or medication. (Relationship: MedicalRecord 1:N Reminder)"
+        }
+      },
+      "required": [
+        "id",
+        "ownerId",
+        "petId",
+        "type",
+        "scheduledDateTime",
+        "description",
+        "isCompleted"
+      ]
     },
     "LostPetReport": {
-        "title": "Lost Pet Report",
-        "description": "A report for a lost pet.",
-        "type": "object",
-        "properties": {
-            "petName": { "type": "string" },
-            "petPhotoUrl": { "type": "string", "format": "uri" },
-            "lastSeen": { "type": "string" },
-            "description": { "type": "string" },
-            "contact": { "type": "string" },
-            "reporterId": { "type": "string" }
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "LostPetReport",
+      "type": "object",
+      "description": "Stores information about a lost pet reported by a user.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the LostPetReport entity."
         },
-        "required": ["petName", "lastSeen", "description", "contact", "reporterId"]
+        "reporterId": {
+          "type": "string",
+          "description": "Reference to the User who reported the lost pet. (Relationship: User 1:N LostPetReport)"
+        },
+        "petName": {
+          "type": "string",
+          "description": "The name of the lost pet."
+        },
+        "petType": {
+          "type": "string",
+          "description": "The type of the lost pet (e.g., Dog, Cat, Bird, Other)."
+        },
+        "breed": {
+          "type": "string",
+          "description": "The breed of the lost pet."
+        },
+        "description": {
+          "type": "string",
+          "description": "A detailed physical description of the pet, including distinguishing marks."
+        },
+        "lastSeenLocationName": {
+          "type": "string",
+          "description": "A human-readable name for the last known location of the pet (e.g., 'Main Street Park')."
+        },
+        "lastSeenLatitude": {
+          "type": "number",
+          "description": "The geographical latitude of the pet's last known location."
+        },
+        "lastSeenLongitude": {
+          "type": "number",
+          "description": "The geographical longitude of the pet's last known location."
+        },
+        "lastSeenDateTime": {
+          "type": "string",
+          "description": "The date and time when the pet was last seen.",
+          "format": "date-time"
+        },
+        "reportDate": {
+          "type": "string",
+          "description": "The date and time when the lost pet report was filed.",
+          "format": "date-time"
+        },
+        "petPhotoUrl": {
+          "type": "string",
+          "description": "URL to a photo of the lost pet.",
+          "format": "uri"
+        },
+        "contactInfo": {
+          "type": "string",
+          "description": "Contact information (e.g., phone number) for the reporter, to be displayed for those who find the pet."
+        },
+        "status": {
+          "type": "string",
+          "description": "The current status of the lost pet report (e.g., 'Lost', 'Found', 'Archived').",
+          "format": "enum"
+        }
+      },
+      "required": [
+        "id",
+        "reporterId",
+        "petName",
+        "petType",
+        "breed",
+        "description",
+        "lastSeenLocationName",
+        "lastSeenLatitude",
+        "lastSeenLongitude",
+        "lastSeenDateTime",
+        "reportDate",
+        "petPhotoUrl",
+        "contactInfo",
+        "status"
+      ]
     }
   },
   "auth": {
-    "providers": ["email"]
+    "providers": [
+      "password",
+      "anonymous"
+    ]
   },
   "firestore": {
-    "/users/{userId}": {
-      "schema": { "$ref": "#/entities/UserProfile" },
-      "description": "Stores user profile information."
-    },
-    "/users/{userId}/pets/{petId}": {
-      "schema": { "$ref": "#/entities/Pet" },
-      "description": "Stores pets for a specific user."
-    },
-    "/users/{userId}/schedule/{scheduleItemId}": {
-        "schema": { "$ref": "#/entities/ScheduleItem" },
-        "description": "Stores schedule items for a user's pets."
-    },
-    "/lost-pets/{reportId}": {
-        "schema": { "$ref": "#/entities/LostPetReport" },
-        "description": "A public collection of lost pet reports."
-    }
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores individual user profiles. Access is restricted to the user whose ID matches the document ID and `request.auth.uid`. This ensures private user data."
+        }
+      },
+      {
+        "path": "/users/{userId}/pets/{petId}",
+        "definition": {
+          "entityName": "Pet",
+          "schema": {
+            "$ref": "#/backend/entities/Pet"
+          },
+          "description": "Stores profiles for pets owned by a specific user. Includes 'ownerId' for authorization, ensuring only the associated user can access their pets' data.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user who owns the pet."
+            },
+            {
+              "name": "petId",
+              "description": "The unique identifier of the pet."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/pets/{petId}/medicalRecords/{medicalRecordId}",
+        "definition": {
+          "entityName": "MedicalRecord",
+          "schema": {
+            "$ref": "#/backend/entities/MedicalRecord"
+          },
+          "description": "Stores medical records for a specific pet. Includes denormalized 'ownerId' for authorization independence, ensuring only the pet's owner can access records, and 'petId' to link to the parent pet.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user who owns the pet."
+            },
+            {
+              "name": "petId",
+              "description": "The unique identifier of the pet this record belongs to."
+            },
+            {
+              "name": "medicalRecordId",
+              "description": "The unique identifier for the medical record."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/pets/{petId}/aiScanResults/{aiScanResultId}",
+        "definition": {
+          "entityName": "AIScanResult",
+          "schema": {
+            "$ref": "#/backend/entities/AIScanResult"
+          },
+          "description": "Stores AI scan results for a specific pet. Includes denormalized 'ownerId' for authorization independence, ensuring only the pet's owner can access scan results, and 'petId' to link to the parent pet.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user who owns the pet."
+            },
+            {
+              "name": "petId",
+              "description": "The unique identifier of the pet that was scanned."
+            },
+            {
+              "name": "aiScanResultId",
+              "description": "The unique identifier for the AI scan result."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/veterinarians/{veterinarianId}",
+        "definition": {
+          "entityName": "Veterinarian",
+          "schema": {
+            "$ref": "#/backend/entities/Veterinarian"
+          },
+          "description": "Stores public profiles of veterinarians. Read access is available to all authenticated users, while write access is restricted to administrators."
+        }
+      },
+      {
+        "path": "/serviceLocations/{serviceLocationId}",
+        "definition": {
+          "entityName": "ServiceLocation",
+          "schema": {
+            "$ref": "#/backend/entities/ServiceLocation"
+          },
+          "description": "Stores public information about pet service locations. Read access is available to all authenticated users, while write access is restricted to administrators."
+        }
+      },
+      {
+        "path": "/users/{userId}/appointments/{appointmentId}",
+        "definition": {
+          "entityName": "Appointment",
+          "schema": {
+            "$ref": "#/backend/entities/Appointment"
+          },
+          "description": "Stores appointments booked by a specific user. Includes 'ownerId' for authorization, ensuring only the booking user can manage their appointments.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user who booked the appointment."
+            },
+            {
+              "name": "appointmentId",
+              "description": "The unique identifier for the appointment."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/foodGuideEntries/{foodGuideEntryId}",
+        "definition": {
+          "entityName": "FoodGuideEntry",
+          "schema": {
+            "$ref": "#/backend/entities/FoodGuideEntry"
+          },
+          "description": "Stores public information regarding pet food. Read access is available to all authenticated users, while write access is restricted to administrators."
+        }
+      },
+      {
+        "path": "/users/{userId}/pets/{petId}/reminders/{reminderId}",
+        "definition": {
+          "entityName": "Reminder",
+          "schema": {
+            "$ref": "#/backend/entities/Reminder"
+          },
+          "description": "Stores health reminders for a specific pet, set by its owner. Includes 'ownerId' and 'petId' for authorization, ensuring only the pet's owner can manage reminders.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user who owns the pet and set the reminder."
+            },
+            {
+              "name": "petId",
+              "description": "The unique identifier of the pet this reminder is for."
+            },
+            {
+              "name": "reminderId",
+              "description": "The unique identifier for the reminder."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/lostPetReports/{lostPetReportId}",
+        "definition": {
+          "entityName": "LostPetReport",
+          "schema": {
+            "$ref": "#/backend/entities/LostPetReport"
+          },
+          "description": "Stores reports of lost pets. Read access is public for authenticated users to facilitate community help. Write/update/delete access is restricted to the 'reporterId' to maintain report integrity."
+        }
+      },
+      {
+        "path": "/roles_admin/{adminId}",
+        "definition": {
+          "entityName": "AdminRole",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "A collection used for Database Access Control (DBAC). The mere existence of a document at `/roles_admin/{uid}` grants administrative privileges to that UID for managing global collections. This uses an implicit schema for an admin role, typically storing just the UID. This adheres to the 'Existence over Content' principle for global roles.",
+          "params": [
+            {
+              "name": "adminId",
+              "description": "The unique identifier of a user with administrative privileges."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure for the \"Smart Pet Care\" application prioritizes secure, scalable, and debuggable authorization by strictly adhering to the core design principles and strategy mandates.\n\nAuthorization Independence (CRITICAL):\nA key strategy employed is the **denormalization of authorization context**. For subcollections like `/users/{userId}/pets/{petId}/medicalRecords` and `/users/{userId}/pets/{petId}/aiScanResults`, the `ownerId` (which is the `userId` of the pet owner) is explicitly copied and stored within each `medicalRecord` and `aiScanResult` document. This eliminates the need for expensive and complex `get()` calls in security rules to check the parent `Pet` document for ownership information. Instead, rules can directly compare `request.auth.uid` with the `userId` from the path and the denormalized `ownerId` field within the `resource.data` of the document being accessed. This ensures that operations like creating a new `medicalRecord` for a pet are atomic and do not require reading the parent pet document first, significantly simplifying security rules and enhancing performance and debuggability.\n\nQAPs (Rules are not Filters) and Structural Segregation:\nThe design ensures Query-As-Permissions (QAPs) by implementing **structural segregation** and **path-based ownership**.\n*   **User-Owned Data:** All user-specific and pet-specific data (`User`, `Pet`, `MedicalRecord`, `AIScanResult`, `Appointment`, `Reminder`) are nested under `/users/{userId}/...` paths. This naturally scopes queries. For instance, a `list` operation on `/users/{userId}/pets` will only return pets owned by the `userId` specified in the path, and security rules will enforce that `request.auth.uid` matches this `userId`. This makes it impossible for a user to accidentally (or maliciously) query data belonging to another user.\n*   **Public/Shared Data:** Collections like `/veterinarians`, `/serviceLocations`, and `/foodGuideEntries` are top-level and designed for public read access. This structural segregation means documents within these collections inherently share the same security posture (publicly readable), simplifying rules to `allow read: if request.auth != null;`. Write access to these collections would be restricted to administrators, typically managed via an existence-based DBAC pattern (e.g., `/roles_admin/{uid}`).\n*   **Mixed Access Data:** For `LostPetReport`, where reports are private for the reporter (write) but public for others (read), a top-level collection `/lostPetReports` is used. This allows all authenticated users to `list` and view reports to aid in finding pets, while write/update/delete operations are strictly tied to the `reporterId` within the document, matching `request.auth.uid`.\n\nConsistency and Predictability:\n*   **Standardized Fields:** `ownerId`, `petId`, and `reporterId` are consistently used for ownership and relationship referencing.\n*   **Explicit State Modeling:** `status` fields are used in `Appointment` and `LostPetReport` to clearly define the current state of an entity.\n*   **Descriptive Wildcards:** Path wildcards like `{userId}`, `{petId}`, `{medicalRecordId}` are semantically meaningful, enhancing rule readability and debugging.\n\nThis structure allows for concise, easy-to-reason-about security rules that are not dependent on cross-document reads, promoting robust security and efficient data access. The `auth/configuration-not-found` error indicates a client-side Firebase Auth initialization issue, which is separate from the Firestore data structure design."
   }
 }
