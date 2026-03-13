@@ -68,13 +68,13 @@ export default function SignupPage() {
           displayName: values.displayName
       });
 
+      let vetId;
       if(firestore) {
         // Check if a veterinarian with this email exists
         const vetsRef = collection(firestore, 'veterinarians');
         const q = query(vetsRef, where("email", "==", values.email));
         const querySnapshot = await getDocs(q);
 
-        let vetId;
         if (!querySnapshot.empty) {
           // Assuming one vet per email
           const vetDoc = querySnapshot.docs[0];
@@ -94,7 +94,13 @@ export default function SignupPage() {
         title: 'Account Created',
         description: "Welcome to Smart Pet Care!",
       });
-      router.push('/dashboard');
+
+      if (vetId) {
+        router.push('/veterinarian/bookings');
+      } else {
+        router.push('/dashboard');
+      }
+      
     } catch (error: any) {
       console.error(error);
       toast({

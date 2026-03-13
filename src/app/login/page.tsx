@@ -28,6 +28,8 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
+import { useFirestore } from '@/firebase';
+import { doc, getDoc } from 'firebase/firestore';
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email.' }),
@@ -41,6 +43,7 @@ export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
   const auth = getAuth();
+  const firestore = useFirestore();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -53,12 +56,26 @@ export default function LoginPage() {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
     try {
-      await signInWithEmailAndPassword(auth, values.email, values.password);
+      const userCredential = await signInWithEmailAndPassword(auth, values.email, values.password);
+      const user = userCredential.user;
+
+      if (firestore) {
+        const userDocRef = doc(firestore, 'users', user.uid);
+        const userDoc = await getDoc(userDocRef);
+        if (userDoc.exists() && userDoc.data().vetId) {
+          router.push('/veterinarian/bookings');
+        } else {
+          router.push('/dashboard');
+        }
+      } else {
+        router.push('/dashboard'); // Fallback
+      }
+
       toast({
         title: 'Login Successful',
         description: "Welcome back!",
       });
-      router.push('/dashboard');
+
     } catch (error: any) {
       console.error(error);
       toast({
@@ -66,7 +83,7 @@ export default function LoginPage() {
         title: 'Login Failed',
         description:
           error.code === 'auth/invalid-credential'
-            ? 'Invalid email or password. Please try again or sign up.'
+            ? 'Invalid email or password. Please try again or sign up if you are new.'
             : 'An error occurred. Please try again.',
       });
     } finally {

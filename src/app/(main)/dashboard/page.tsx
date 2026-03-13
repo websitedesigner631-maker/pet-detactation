@@ -10,10 +10,14 @@ import {
   Search,
   Calendar,
   HeartPulse,
+  Loader2,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import VoiceAssistantDialog from '@/components/voice-assistant-dialog';
-import { useUser } from '@/firebase';
+import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
+import { doc } from 'firebase/firestore';
 
 const featureLinks: {
   href: string;
@@ -53,6 +57,28 @@ function FeatureButton({
 
 export default function DashboardPage() {
   const { user } = useUser();
+  const router = useRouter();
+  const firestore = useFirestore();
+
+  const userDocRef = useMemoFirebase(() => {
+    if (!user || !firestore) return null;
+    return doc(firestore, 'users', user.uid);
+  }, [user, firestore]);
+  const { data: userProfile, isLoading: loadingProfile } = useDoc(userDocRef);
+
+  useEffect(() => {
+    if (!loadingProfile && userProfile?.vetId) {
+      router.replace('/veterinarian/bookings');
+    }
+  }, [loadingProfile, userProfile, router]);
+
+  if (loadingProfile || userProfile?.vetId) {
+    return (
+      <div className="flex justify-center items-center h-full">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 space-y-6">
