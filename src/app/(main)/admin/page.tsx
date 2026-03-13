@@ -79,9 +79,9 @@ function AdminDashboard() {
     <div className="p-4 space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Add New Veterinarian</CardTitle>
+          <CardTitle>Invite New Veterinarian</CardTitle>
           <CardDescription>
-            The veterinarian will need to sign up with the same email to access their dashboard.
+            This creates a veterinarian profile. They must then sign up with the same email to create their login and access their dashboard.
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleAddVet}>
