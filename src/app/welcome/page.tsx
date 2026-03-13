@@ -16,7 +16,7 @@ export default function WelcomePage() {
   return (
     <div className="flex justify-center items-start md:items-center min-h-screen py-0 md:py-4">
       <div className="relative w-full max-w-md h-screen md:h-[calc(100vh-2rem)] md:max-h-[800px] bg-background text-foreground md:rounded-3xl shadow-2xl overflow-hidden border-background md:border-[10px] md:dark:border-neutral-800 flex flex-col">
-        <div className="flex-1 flex flex-col justify-center items-center text-center p-4 sm:p-6 md:p-8 space-y-4">
+        <div className="flex-1 flex flex-col justify-center items-center text-center p-4 sm:p-6 md:p-8 space-y-4 overflow-y-auto">
           <div className="p-4 bg-primary/10 rounded-full">
             <PawPrint className="w-12 h-12 sm:w-16 sm:h-16 text-primary" />
           </div>
