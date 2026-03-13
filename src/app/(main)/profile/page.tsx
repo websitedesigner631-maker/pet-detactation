@@ -4,13 +4,16 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { User, Settings, Shield, Bell, LogOut, Loader2, Calendar, UserCog } from 'lucide-react';
+import { User, Settings, Shield, Bell, LogOut, Loader2, Calendar, UserCog, Stethoscope } from 'lucide-react';
 import PageHeader from '@/components/page-header';
 import Link from 'next/link';
-import { useUser } from '@/firebase';
+import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { getAuth, signOut } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
+import { doc } from 'firebase/firestore';
+import type { User as AppUser } from '@/lib/types';
+
 
 const ADMIN_EMAIL = 'rraghabbarik@gmail.com';
 
@@ -35,9 +38,17 @@ const ProfileMenuItem = ({
 );
 
 export default function ProfilePage() {
-  const { user, loading } = useUser();
+  const { user, loading: loadingUser } = useUser();
+  const firestore = useFirestore();
   const router = useRouter();
   const { toast } = useToast();
+  
+  const userDocRef = useMemoFirebase(() => {
+    if (!user || !firestore) return null;
+    return doc(firestore, 'users', user.uid);
+  }, [user, firestore]);
+
+  const { data: userProfile, loading: loadingProfile } = useDoc<AppUser>(userDocRef);
 
   const handleLogout = async () => {
     try {
@@ -49,6 +60,8 @@ export default function ProfilePage() {
     }
   };
 
+  const loading = loadingUser || loadingProfile;
+
   if (loading) {
     return (
         <div className="p-4 flex justify-center items-center h-full">
@@ -58,6 +71,7 @@ export default function ProfilePage() {
   }
 
   const isAdmin = user?.email === ADMIN_EMAIL;
+  const isVet = !!userProfile?.vetId;
 
   return (
     <div>
@@ -78,6 +92,14 @@ export default function ProfilePage() {
              <Card className="bg-primary/10 border-primary/20">
                 <CardContent className="p-2">
                     <ProfileMenuItem icon={UserCog} label="Admin Dashboard" href="/admin" />
+                </CardContent>
+            </Card>
+        )}
+        
+        {isVet && (
+             <Card className="bg-primary/10 border-primary/20">
+                <CardContent className="p-2">
+                    <ProfileMenuItem icon={Stethoscope} label="Veterinarian Dashboard" href={`/veterinarian/${userProfile.vetId}`} />
                 </CardContent>
             </Card>
         )}

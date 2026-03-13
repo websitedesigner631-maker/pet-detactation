@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { getAuth, createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -69,11 +69,24 @@ export default function SignupPage() {
       });
 
       if(firestore) {
+        // Check if a veterinarian with this email exists
+        const vetsRef = collection(firestore, 'veterinarians');
+        const q = query(vetsRef, where("email", "==", values.email));
+        const querySnapshot = await getDocs(q);
+
+        let vetId;
+        if (!querySnapshot.empty) {
+          // Assuming one vet per email
+          const vetDoc = querySnapshot.docs[0];
+          vetId = vetDoc.id;
+        }
+
         await setDoc(doc(firestore, 'users', user.uid), {
             id: user.uid,
             name: values.displayName,
             email: values.email,
-            languagePreference: 'en'
+            languagePreference: 'en',
+            ...(vetId && { vetId })
         });
       }
 

@@ -61,12 +61,20 @@ export type VetService = {
   distance: string;
 };
 
+export interface User extends DocumentData {
+  id: string;
+  name: string;
+  email: string;
+  languagePreference: string;
+  vetId?: string;
+}
+
 export interface Veterinarian extends DocumentData {
   id: string;
   name: string;
   specialties: string[];
   profileImageUrl: string;
-  email?: string;
+  email: string;
 }
 
 export interface Appointment extends DocumentData {

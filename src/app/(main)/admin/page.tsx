@@ -26,6 +26,7 @@ function AdminDashboard() {
     name: '',
     specialties: '', // Comma-separated
     profileImageUrl: '',
+    email: '',
   });
 
   const vetsCollection = useMemoFirebase(() => {
@@ -42,7 +43,7 @@ function AdminDashboard() {
   const handleAddVet = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!firestore) return;
-    if (!formState.name || !formState.specialties) {
+    if (!formState.name || !formState.specialties || !formState.email) {
       toast({ variant: 'destructive', title: 'Please fill all required fields.' });
       return;
     }
@@ -50,11 +51,12 @@ function AdminDashboard() {
     try {
       await addDoc(collection(firestore, 'veterinarians'), {
         name: formState.name,
+        email: formState.email,
         specialties: formState.specialties.split(',').map(s => s.trim()).filter(Boolean),
         profileImageUrl: formState.profileImageUrl || `https://picsum.photos/seed/${Date.now()}/200/200`,
       });
       toast({ title: 'Veterinarian Added' });
-      setFormState({ name: '', specialties: '', profileImageUrl: '' });
+      setFormState({ name: '', specialties: '', profileImageUrl: '', email: '' });
     } catch (error: any) {
       console.error(error);
       toast({ variant: 'destructive', title: 'Error', description: error.message });
@@ -78,12 +80,19 @@ function AdminDashboard() {
       <Card>
         <CardHeader>
           <CardTitle>Add New Veterinarian</CardTitle>
+          <CardDescription>
+            The veterinarian will need to sign up with the same email to access their dashboard.
+          </CardDescription>
         </CardHeader>
         <form onSubmit={handleAddVet}>
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="name">Full Name</Label>
               <Input id="name" placeholder="Dr. Jane Doe" value={formState.name} onChange={handleInputChange} />
+            </div>
+             <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input id="email" type="email" placeholder="dr.jane@example.com" value={formState.email} onChange={handleInputChange} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="specialties">Specialties (comma-separated)</Label>
@@ -122,6 +131,7 @@ function AdminDashboard() {
                         />
                         <div className="flex-grow">
                             <p className="font-bold">{vet.name}</p>
+                            <p className="text-sm text-muted-foreground">{vet.email}</p>
                             <div className="flex flex-wrap gap-1 mt-1">
                                 {vet.specialties.map(s => <Badge key={s} variant="secondary">{s}</Badge>)}
                             </div>

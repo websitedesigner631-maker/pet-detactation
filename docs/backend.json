@@ -28,6 +28,10 @@
           "type": "string",
           "description": "The user's preferred language for voice assistant and application text.",
           "format": "enum"
+        },
+        "vetId": {
+          "type": "string",
+          "description": "If the user is a veterinarian, this is their veterinarian ID."
         }
       },
       "required": [
@@ -244,8 +248,8 @@
       "required": [
         "id",
         "name",
-        "contactNumber",
-        "specialties"
+        "specialties",
+        "email"
       ]
     },
     "ServiceLocation": {
