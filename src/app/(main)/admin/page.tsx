@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, deleteDoc, doc, setDoc } from 'firebase/firestore';
+import { collection, deleteDoc, doc, setDoc, addDoc, query, where, getDocs, updateDoc } from 'firebase/firestore';
 import PageHeader from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter, CardDescription } from '@/components/ui/card';
@@ -13,9 +13,6 @@ import { useToast } from '@/hooks/use-toast';
 import type { Veterinarian } from '@/lib/types';
 import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
-import { initializeApp, deleteApp, type FirebaseApp } from 'firebase/app';
-import { getAuth, createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
-import { firebaseConfig } from '@/firebase/config';
 
 const ADMIN_EMAIL = 'rraghabbarik@gmail.com';
 
@@ -30,7 +27,6 @@ function AdminDashboard() {
     specialties: '', // Comma-separated
     profileImageUrl: '',
     email: '',
-    password: '',
   });
 
   const vetsCollection = useMemoFirebase(() => {
@@ -47,74 +43,49 @@ function AdminDashboard() {
   const handleAddVet = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!firestore) return;
-    if (!formState.name || !formState.email || !formState.password || !formState.specialties) {
+    if (!formState.name || !formState.email || !formState.specialties) {
       toast({ variant: 'destructive', title: 'Please fill all required fields.' });
       return;
     }
-     if (formState.password.length < 6) {
-        toast({ variant: 'destructive', title: 'Password is too weak.', description: 'Password must be at least 6 characters long.' });
-        return;
-    }
 
     setIsSubmitting(true);
-    let tempApp: FirebaseApp | null = null;
     
     try {
-      const tempAppName = `temp-vet-signup-${Date.now()}`;
-      tempApp = initializeApp(firebaseConfig, tempAppName);
-      const tempAuth = getAuth(tempApp);
+      const vetsRef = collection(firestore, 'veterinarians');
+      // Check if vet with this email already exists
+      const q = query(vetsRef, where("email", "==", formState.email));
+      const querySnapshot = await getDocs(q);
+      if (!querySnapshot.empty) {
+          toast({ variant: 'destructive', title: 'Vet Exists', description: 'A veterinarian with this email already exists.' });
+          setIsSubmitting(false);
+          return;
+      }
 
-      const userCredential = await createUserWithEmailAndPassword(tempAuth, formState.email, formState.password);
-      const newVetUser = userCredential.user;
+      const newVetDocRef = await addDoc(vetsRef, {
+          name: formState.name,
+          email: formState.email,
+          specialties: formState.specialties.split(',').map(s => s.trim()).filter(Boolean),
+          profileImageUrl: formState.profileImageUrl || `https://picsum.photos/seed/${formState.email}/200/200`,
+      });
       
-      await updateProfile(newVetUser, { displayName: formState.name });
-      const newVetUid = newVetUser.uid;
+      await updateDoc(newVetDocRef, { id: newVetDocRef.id });
 
-      // Create the public veterinarian profile
-      const vetDocRef = doc(firestore, 'veterinarians', newVetUid);
-      await setDoc(vetDocRef, {
-        id: newVetUid,
-        name: formState.name,
-        email: formState.email,
-        specialties: formState.specialties.split(',').map(s => s.trim()).filter(Boolean),
-        profileImageUrl: formState.profileImageUrl || `https://picsum.photos/seed/${newVetUid}/200/200`,
-      });
-
-      // Create the private user document
-      const userDocRef = doc(firestore, 'users', newVetUid);
-      await setDoc(userDocRef, {
-        id: newVetUid,
-        name: formState.name,
-        email: formState.email,
-        languagePreference: 'en',
-        vetId: newVetUid,
-      });
-
-      toast({ title: 'Veterinarian Account Created' });
-      setFormState({ name: '', specialties: '', profileImageUrl: '', email: '', password: '' });
+      toast({ title: 'Veterinarian Invited', description: 'The vet can now sign up with their email.' });
+      setFormState({ name: '', specialties: '', profileImageUrl: '', email: ''});
 
     } catch (error: any) {
       console.error(error);
-      let description = 'An unknown error occurred.';
-      if (error.code === 'auth/email-already-in-use') {
-        description = 'This email is already in use by another account.';
-      } else if (error.code === 'auth/weak-password') {
-        description = 'The password must be at least 6 characters long.';
-      }
-      toast({ variant: 'destructive', title: 'Creation Failed', description });
+      toast({ variant: 'destructive', title: 'Invitation Failed', description: 'An unknown error occurred.' });
     } finally {
       setIsSubmitting(false);
-      if (tempApp) {
-        await deleteApp(tempApp);
-      }
     }
   };
 
   const handleDeleteVet = async (id: string) => {
     if (!firestore) return;
+    // Note: This only deletes the vet profile. The user auth account must be
+    // deleted from the Firebase Console manually.
     try {
-      // This only deletes the Firestore profile, not the Auth user,
-      // which requires the Admin SDK.
       await deleteDoc(doc(firestore, 'veterinarians', id));
       toast({ title: 'Veterinarian Profile Removed' });
     } catch (error: any) {
@@ -126,9 +97,9 @@ function AdminDashboard() {
     <div className="p-4 space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Create Veterinarian Account</CardTitle>
+          <CardTitle>Invite New Veterinarian</CardTitle>
           <CardDescription>
-            Create a new veterinarian user and profile. They can sign in with the email and password you provide.
+            Add a new veterinarian's profile. They will need to sign up themselves using the same email address to access their dashboard.
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleAddVet}>
@@ -140,10 +111,6 @@ function AdminDashboard() {
              <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input id="email" type="email" placeholder="dr.jane@example.com" value={formState.email} onChange={handleInputChange} />
-            </div>
-             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input id="password" type="password" placeholder="Min. 6 characters" value={formState.password} onChange={handleInputChange} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="specialties">Specialties (comma-separated)</Label>
@@ -157,7 +124,7 @@ function AdminDashboard() {
           <CardFooter>
             <Button type="submit" className="w-full" disabled={isSubmitting}>
               {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlusCircle className="mr-2 h-4 w-4" />}
-              Create Veterinarian Account
+              Create & Invite Veterinarian
             </Button>
           </CardFooter>
         </form>
