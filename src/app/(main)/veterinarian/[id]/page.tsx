@@ -4,19 +4,21 @@ import { doc } from 'firebase/firestore';
 import { useDoc, useFirestore, useMemoFirebase } from '@/firebase';
 import type { Veterinarian } from '@/lib/types';
 import PageHeader from '@/components/page-header';
-import { notFound } from 'next/navigation';
+import { notFound, useParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
 import { Skeleton } from '@/components/ui/skeleton';
 
-export default function VeterinarianProfilePage({ params }: { params: { id: string } }) {
+export default function VeterinarianProfilePage() {
+  const params = useParams();
+  const vetId = params.id as string;
   const firestore = useFirestore();
 
   const vetDocRef = useMemoFirebase(() => {
     if (!firestore) return null;
-    return doc(firestore, 'veterinarians', params.id);
-  }, [firestore, params.id]);
+    return doc(firestore, 'veterinarians', vetId);
+  }, [firestore, vetId]);
 
   const { data: vet, loading } = useDoc<Veterinarian>(vetDocRef);
 

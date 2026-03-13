@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { notFound } from 'next/navigation';
+import { notFound, useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -107,7 +107,9 @@ function CareGuide({ careInfo, breed }: { careInfo: PetCareInfoOutput, breed: st
     );
   }
 
-export default function PetProfilePage({ params }: { params: { id: string } }) {
+export default function PetProfilePage() {
+  const params = useParams();
+  const petId = params.id as string;
   const [careInfo, setCareInfo] = useState<PetCareInfoOutput | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const { toast } = useToast();
@@ -116,8 +118,8 @@ export default function PetProfilePage({ params }: { params: { id: string } }) {
 
   const petDocRef = useMemoFirebase(() => {
     if (!user || !firestore) return null;
-    return doc(firestore, `users/${user.uid}/pets`, params.id);
-  }, [user, firestore, params.id]);
+    return doc(firestore, `users/${user.uid}/pets`, petId);
+  }, [user, firestore, petId]);
 
   const { data: pet, loading: isLoadingPet } = useDoc<Pet>(petDocRef);
   
@@ -237,7 +239,7 @@ export default function PetProfilePage({ params }: { params: { id: string } }) {
           </div>
         </div>
         
-        <Link href={`/pets/${pet.id}/history`}>
+        <Link href={`/pets/${petId}/history`}>
           <Button size="lg" className="w-full h-14 text-lg rounded-xl shadow-md">
             <FileText className="mr-3" />
             View Medical History
