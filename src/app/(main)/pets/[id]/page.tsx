@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { notFound, useParams } from 'next/navigation';
+import { notFound, useParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -10,6 +10,22 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import {
   MoreVertical,
   CheckCircle,
@@ -25,6 +41,8 @@ import {
   Bone,
   BrainCircuit,
   Loader2,
+  Edit,
+  Trash2
 } from 'lucide-react';
 import PageHeader from '@/components/page-header';
 import Link from 'next/link';
@@ -34,7 +52,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useDoc, useUser, useFirestore, useMemoFirebase } from '@/firebase';
 import type { Pet } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
-import { doc } from 'firebase/firestore';
+import { doc, deleteDoc } from 'firebase/firestore';
 
 const InfoRow = ({
   icon: Icon,
@@ -109,9 +127,11 @@ function CareGuide({ careInfo, breed }: { careInfo: PetCareInfoOutput, breed: st
 
 export default function PetProfilePage() {
   const params = useParams();
+  const router = useRouter();
   const petId = params.id as string;
   const [careInfo, setCareInfo] = useState<PetCareInfoOutput | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const { toast } = useToast();
   const { user } = useUser();
   const firestore = useFirestore();
@@ -123,6 +143,26 @@ export default function PetProfilePage() {
 
   const { data: pet, loading: isLoadingPet } = useDoc<Pet>(petDocRef);
   
+  const handleDeletePet = async () => {
+    if (!petDocRef || !pet) return;
+    try {
+      await deleteDoc(petDocRef);
+      toast({
+        title: "Pet Removed",
+        description: `${pet.name} has been removed from your profile.`,
+      });
+      router.push('/pets');
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to remove pet.",
+      });
+    } finally {
+      setIsDeleteDialogOpen(false);
+    }
+  };
+
   if (isLoadingPet) {
     return (
         <div className="p-4 space-y-5">
@@ -173,12 +213,26 @@ export default function PetProfilePage() {
   return (
     <div className="bg-muted/30">
       <PageHeader title="Pet Profile">
-        <Button variant="ghost" size="icon">
-          <MoreVertical />
-        </Button>
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon">
+                    <MoreVertical />
+                </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+                <DropdownMenuItem onSelect={() => router.push(`/pets/${petId}/edit`)} className="cursor-pointer">
+                    <Edit className="mr-2 h-4 w-4" />
+                    <span>Edit</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => setIsDeleteDialogOpen(true)} className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer">
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    <span>Delete</span>
+                </DropdownMenuItem>
+            </DropdownMenuContent>
+        </DropdownMenu>
       </PageHeader>
 
-      <div className="p-4 space-y-5">
+      <div className="p-4 space-y-5 pb-6">
         <Card className="rounded-3xl overflow-hidden shadow-lg border-0">
           <div className="relative">
             <Image
@@ -246,6 +300,22 @@ export default function PetProfilePage() {
           </Button>
         </Link>
       </div>
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+                This action cannot be undone. This will permanently delete {pet?.name}'s profile and all associated data.
+            </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeletePet} className="bg-destructive hover:bg-destructive/90">
+                Yes, delete pet
+            </AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+    </AlertDialog>
     </div>
   );
 }
