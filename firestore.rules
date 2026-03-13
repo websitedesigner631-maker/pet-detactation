@@ -161,6 +161,17 @@ service cloud.firestore {
       allow update: if isExistingOwner(userId) && request.resource.data.ownerId == resource.data.ownerId;
       allow delete: if isExistingOwner(userId);
     }
+    
+    /**
+     * @description Only the owner can manage their own schedule items.
+     * @path /users/{userId}/schedule/{scheduleItemId}
+     * @allow (list) User 'user_abc' listing their own schedule.
+     * @deny (create) User 'user_xyz' creating a schedule item for another user.
+     * @principle Enforces document ownership within a user's data tree.
+     */
+    match /users/{userId}/schedule/{scheduleItemId} {
+      allow get, list, create, update, delete: if isOwner(userId);
+    }
 
     // -------------------------------------------------------------------------
     // Public/Global Collections (Admin-Write)

@@ -12,7 +12,12 @@
         },
         "name": {
           "type": "string",
-          "description": "The user's full name, for personalization."
+          "description": "The user's full name, for personalization. From 'displayName' on signup."
+        },
+        "email": {
+          "type": "string",
+          "description": "The user's email address.",
+          "format": "email"
         },
         "contactNumber": {
           "type": "string",
@@ -485,82 +490,87 @@
       "type": "object",
       "description": "Stores information about a lost pet reported by a user.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the LostPetReport entity."
-        },
-        "reporterId": {
-          "type": "string",
-          "description": "Reference to the User who reported the lost pet. (Relationship: User 1:N LostPetReport)"
-        },
         "petName": {
           "type": "string",
           "description": "The name of the lost pet."
-        },
-        "petType": {
-          "type": "string",
-          "description": "The type of the lost pet (e.g., Dog, Cat, Bird, Other)."
-        },
-        "breed": {
-          "type": "string",
-          "description": "The breed of the lost pet."
-        },
-        "description": {
-          "type": "string",
-          "description": "A detailed physical description of the pet, including distinguishing marks."
-        },
-        "lastSeenLocationName": {
-          "type": "string",
-          "description": "A human-readable name for the last known location of the pet (e.g., 'Main Street Park')."
-        },
-        "lastSeenLatitude": {
-          "type": "number",
-          "description": "The geographical latitude of the pet's last known location."
-        },
-        "lastSeenLongitude": {
-          "type": "number",
-          "description": "The geographical longitude of the pet's last known location."
-        },
-        "lastSeenDateTime": {
-          "type": "string",
-          "description": "The date and time when the pet was last seen.",
-          "format": "date-time"
-        },
-        "reportDate": {
-          "type": "string",
-          "description": "The date and time when the lost pet report was filed.",
-          "format": "date-time"
         },
         "petPhotoUrl": {
           "type": "string",
           "description": "URL to a photo of the lost pet.",
           "format": "uri"
         },
-        "contactInfo": {
+        "lastSeen": {
           "type": "string",
-          "description": "Contact information (e.g., phone number) for the reporter, to be displayed for those who find the pet."
+          "description": "The last known location of the pet."
         },
-        "status": {
+        "description": {
           "type": "string",
-          "description": "The current status of the lost pet report (e.g., 'Lost', 'Found', 'Archived').",
-          "format": "enum"
+          "description": "A detailed physical description of the pet."
+        },
+        "contact": {
+          "type": "string",
+          "description": "Contact information for the reporter."
+        },
+        "reporterId": {
+          "type": "string",
+          "description": "Reference to the User who reported the lost pet."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "The date and time when the lost pet report was filed.",
+          "format": "date-time"
         }
       },
       "required": [
-        "id",
-        "reporterId",
         "petName",
-        "petType",
-        "breed",
-        "description",
-        "lastSeenLocationName",
-        "lastSeenLatitude",
-        "lastSeenLongitude",
-        "lastSeenDateTime",
-        "reportDate",
         "petPhotoUrl",
-        "contactInfo",
-        "status"
+        "lastSeen",
+        "description",
+        "contact",
+        "reporterId",
+        "createdAt"
+      ]
+    },
+    "ScheduleItem": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ScheduleItem",
+      "type": "object",
+      "description": "Represents a single schedule item for a pet.",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "time": {
+          "type": "string"
+        },
+        "category": {
+          "type": "string",
+          "enum": [
+            "Feeding",
+            "Exercise",
+            "Grooming",
+            "Training",
+            "Health",
+            "Other"
+          ]
+        },
+        "petId": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "title",
+        "time",
+        "category",
+        "petId",
+        "createdAt"
       ]
     }
   },
@@ -749,8 +759,28 @@
             }
           ]
         }
+      },
+      {
+        "path": "/users/{userId}/schedule/{scheduleItemId}",
+        "definition": {
+          "entityName": "ScheduleItem",
+          "schema": {
+            "$ref": "#/backend/entities/ScheduleItem"
+          },
+          "description": "Stores custom schedule items for a user's pets.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            },
+            {
+              "name": "scheduleItemId",
+              "description": "The unique identifier for the schedule item."
+            }
+          ]
+        }
       }
     ],
-    "reasoning": "The Firestore structure for the \"Smart Pet Care\" application prioritizes secure, scalable, and debuggable authorization by strictly adhering to the core design principles and strategy mandates.\n\nAuthorization Independence (CRITICAL):\nA key strategy employed is the **denormalization of authorization context**. For subcollections like `/users/{userId}/pets/{petId}/medicalRecords` and `/users/{userId}/pets/{petId}/aiScanResults`, the `ownerId` (which is the `userId` of the pet owner) is explicitly copied and stored within each `medicalRecord` and `aiScanResult` document. This eliminates the need for expensive and complex `get()` calls in security rules to check the parent `Pet` document for ownership information. Instead, rules can directly compare `request.auth.uid` with the `userId` from the path and the denormalized `ownerId` field within the `resource.data` of the document being accessed. This ensures that operations like creating a new `medicalRecord` for a pet are atomic and do not require reading the parent pet document first, significantly simplifying security rules and enhancing performance and debuggability.\n\nQAPs (Rules are not Filters) and Structural Segregation:\nThe design ensures Query-As-Permissions (QAPs) by implementing **structural segregation** and **path-based ownership**.\n*   **User-Owned Data:** All user-specific and pet-specific data (`User`, `Pet`, `MedicalRecord`, `AIScanResult`, `Appointment`, `Reminder`) are nested under `/users/{userId}/...` paths. This naturally scopes queries. For instance, a `list` operation on `/users/{userId}/pets` will only return pets owned by the `userId` specified in the path, and security rules will enforce that `request.auth.uid` matches this `userId`. This makes it impossible for a user to accidentally (or maliciously) query data belonging to another user.\n*   **Public/Shared Data:** Collections like `/veterinarians`, `/serviceLocations`, and `/foodGuideEntries` are top-level and designed for public read access. This structural segregation means documents within these collections inherently share the same security posture (publicly readable), simplifying rules to `allow read: if request.auth != null;`. Write access to these collections would be restricted to administrators, typically managed via an existence-based DBAC pattern (e.g., `/roles_admin/{uid}`).\n*   **Mixed Access Data:** For `LostPetReport`, where reports are private for the reporter (write) but public for others (read), a top-level collection `/lostPetReports` is used. This allows all authenticated users to `list` and view reports to aid in finding pets, while write/update/delete operations are strictly tied to the `reporterId` within the document, matching `request.auth.uid`.\n\nConsistency and Predictability:\n*   **Standardized Fields:** `ownerId`, `petId`, and `reporterId` are consistently used for ownership and relationship referencing.\n*   **Explicit State Modeling:** `status` fields are used in `Appointment` and `LostPetReport` to clearly define the current state of an entity.\n*   **Descriptive Wildcards:** Path wildcards like `{userId}`, `{petId}`, `{medicalRecordId}` are semantically meaningful, enhancing rule readability and debugging.\n\nThis structure allows for concise, easy-to-reason-about security rules that are not dependent on cross-document reads, promoting robust security and efficient data access. The `auth/configuration-not-found` error indicates a client-side Firebase Auth initialization issue, which is separate from the Firestore data structure design."
+    "reasoning": "The Firestore structure for the \"Smart Pet Care\" application prioritizes secure, scalable, and debuggable authorization by strictly adhering to the core design principles and strategy mandates.\n\nAuthorization Independence (CRITICAL):\nA key strategy employed is the **denormalization of authorization context**. For subcollections like `/users/{userId}/pets/{petId}/medicalRecords` and `/users/{userId}/pets/{petId}/aiScanResults`, the `ownerId` (which is the `userId` of the pet owner) is explicitly copied and stored within each `medicalRecord` and `aiScanResult` document. This eliminates the need for expensive and complex `get()` calls in security rules to check the parent `Pet` document for ownership information. Instead, rules can directly compare `request.auth.uid` with the `userId` from the path and the denormalized `ownerId` field within the `resource.data` of the document being accessed. This ensures that operations like creating a new `medicalRecord` for a pet are atomic and do not require reading the parent pet document first, significantly simplifying security rules and enhancing performance and debuggability.\n\nQAPs (Rules are not Filters) and Structural Segregation:\nThe design ensures Query-As-Permissions (QAPs) by implementing **structural segregation** and **path-based ownership**.\n*   **User-Owned Data:** All user-specific and pet-specific data (`User`, `Pet`, `MedicalRecord`, `AIScanResult`, `Appointment`, `Reminder`, `ScheduleItem`) are nested under `/users/{userId}/...` paths. This naturally scopes queries. For instance, a `list` operation on `/users/{userId}/pets` will only return pets owned by the `userId` specified in the path, and security rules will enforce that `request.auth.uid` matches this `userId`. This makes it impossible for a user to accidentally (or maliciously) query data belonging to another user.\n*   **Public/Shared Data:** Collections like `/veterinarians`, `/serviceLocations`, and `/foodGuideEntries` are top-level and designed for public read access. This structural segregation means documents within these collections inherently share the same security posture (publicly readable), simplifying rules to `allow read: if request.auth != null;`. Write access to these collections would be restricted to administrators, typically managed via an existence-based DBAC pattern (e.g., `/roles_admin/{uid}`).\n*   **Mixed Access Data:** For `LostPetReport`, where reports are private for the reporter (write) but public for others (read), a top-level collection `/lostPetReports` is used. This allows all authenticated users to `list` and view reports to aid in finding pets, while write/update/delete operations are strictly tied to the `reporterId` within the document, matching `request.auth.uid`.\n\nConsistency and Predictability:\n*   **Standardized Fields:** `ownerId`, `petId`, and `reporterId` are consistently used for ownership and relationship referencing.\n*   **Explicit State Modeling:** `status` fields are used in `Appointment` and `LostPetReport` to clearly define the current state of an entity.\n*   **Descriptive Wildcards:** Path wildcards like `{userId}`, `{petId}`, `{medicalRecordId}` are semantically meaningful, enhancing rule readability and debugging.\n\nThis structure allows for concise, easy-to-reason-about security rules that are not dependent on cross-document reads, promoting robust security and efficient data access. The `auth/configuration-not-found` error indicates a client-side Firebase Auth initialization issue, which is separate from the Firestore data structure design."
   }
 }

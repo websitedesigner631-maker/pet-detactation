@@ -70,8 +70,10 @@ export default function SignupPage() {
 
       if(firestore) {
         await setDoc(doc(firestore, 'users', user.uid), {
-            displayName: values.displayName,
-            email: values.email
+            id: user.uid,
+            name: values.displayName,
+            email: values.email,
+            languagePreference: 'en'
         });
       }
 

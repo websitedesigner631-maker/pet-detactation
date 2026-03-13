@@ -18,7 +18,7 @@ import { PlusCircle, Search, Loader2 } from 'lucide-react';
 import type { LostPetReport } from '@/lib/types';
 import PageHeader from '@/components/page-header';
 import { useCollection, useUser, useFirestore } from '@/firebase';
-import { collection, addDoc } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 
 function LostPetCard({ report }: { report: LostPetReport }) {
@@ -53,7 +53,7 @@ function LostPetCard({ report }: { report: LostPetReport }) {
 }
 
 export default function LostPetPage() {
-  const { data: lostPetReports, loading } = useCollection<LostPetReport>('lost-pets', { orderBy: ['createdAt', 'desc'], limit: 20});
+  const { data: lostPetReports, loading } = useCollection<LostPetReport>('lostPetReports', { orderBy: ['createdAt', 'desc'], limit: 20});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { user } = useUser();
   const firestore = useFirestore();
@@ -82,10 +82,10 @@ export default function LostPetPage() {
     }
     setIsSubmitting(true);
     try {
-        await addDoc(collection(firestore, 'lost-pets'), {
+        await addDoc(collection(firestore, 'lostPetReports'), {
             ...formState,
             reporterId: user.uid,
-            createdAt: new Date(),
+            createdAt: serverTimestamp(),
             // In a real app, you would handle image uploads and get a URL.
             // For now, we'll use a placeholder.
             petPhotoUrl: `https://picsum.photos/seed/${Date.now()}/300/300`
