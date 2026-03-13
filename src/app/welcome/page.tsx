@@ -15,34 +15,34 @@ export default function WelcomePage() {
 
   return (
     <div className="flex justify-center items-start md:items-center min-h-screen py-0 md:py-4">
-      <div className="relative w-full md:max-w-sm h-svh md:h-[calc(100vh-2rem)] md:max-h-[650px] bg-background text-foreground md:rounded-3xl shadow-2xl overflow-hidden border-background md:border-[10px] md:dark:border-neutral-800">
+      <div className="relative w-full md:max-w-xs h-svh md:h-[calc(100vh-2rem)] md:max-h-[550px] bg-neutral-900 text-foreground md:rounded-3xl shadow-2xl overflow-hidden border-background md:border-[10px] md:dark:border-neutral-800">
         
-        {/* Content Area */}
-        <div className="h-full overflow-y-auto">
-          <div className="flex flex-col justify-center items-center text-center p-4 sm:p-6 md:p-8 space-y-4 pb-8">
-            <div className="p-4 bg-primary/10 rounded-full mt-8">
-              <PawPrint className="w-12 h-12 sm:w-16 sm:h-16 text-primary" />
+        <Image
+          src="https://picsum.photos/seed/pets-welcome-4/800/1200"
+          alt="A happy pet looking up"
+          fill
+          className="object-cover"
+          data-ai-hint="dog portrait"
+          priority
+        />
+        
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
+
+        <div className="relative h-full flex flex-col justify-end text-white p-8 space-y-4">
+            <div className="p-4 bg-white/20 backdrop-blur-sm rounded-full w-fit">
+              <PawPrint className="w-10 h-10 text-white" />
             </div>
-            <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">
-              Welcome to Smart Pet Care
+            <h1 className="text-4xl font-bold tracking-tight">
+              Smart Pet Care
             </h1>
-            <p className="text-base sm:text-lg text-muted-foreground">
-              Your intelligent assistant for happy, healthy pets. Let's get you set up.
+            <p className="text-lg text-white/90">
+              The intelligent assistant for happy, healthy pets.
             </p>
-            <Image
-              src="https://picsum.photos/seed/welcome-pets/600/400"
-              alt="A group of happy pets"
-              width={600}
-              height={400}
-              className="rounded-2xl shadow-lg w-full max-w-xs sm:max-w-sm aspect-[3/2] object-cover"
-              data-ai-hint="happy pets"
-            />
-            <div className="pt-4 w-full">
-                <Button onClick={handleGetStarted} size="lg" className="w-full h-14 text-lg rounded-xl shadow-md">
+            <div className="pt-6 w-full">
+                <Button onClick={handleGetStarted} size="lg" className="w-full h-14 text-lg rounded-xl shadow-lg bg-white text-primary hover:bg-white/90">
                     Get Started
                 </Button>
             </div>
-          </div>
         </div>
 
       </div>
