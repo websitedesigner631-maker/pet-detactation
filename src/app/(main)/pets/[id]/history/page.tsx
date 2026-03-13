@@ -1,13 +1,15 @@
 'use client';
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { notFound, useParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { HeartPulse, ScanLine, Loader2, Info } from 'lucide-react';
+import { HeartPulse, ScanLine, Loader2, Info, PlusCircle } from 'lucide-react';
 import PageHeader from '@/components/page-header';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, orderBy } from 'firebase/firestore';
 import type { MedicalRecord, AIScanResult, HealthHistoryEvent } from '@/lib/types';
 import { format } from 'date-fns';
+import { Button } from '@/components/ui/button';
+import Link from 'next/link';
 
 function HistoryEventCard({ event }: { event: HealthHistoryEvent }) {
   const Icon = event.type === 'Record' ? HeartPulse : ScanLine;
@@ -83,7 +85,14 @@ export default function PetHistoryPage() {
 
   return (
     <div>
-      <PageHeader title="Pet Health History" />
+      <PageHeader title="Pet Health History">
+        <Link href={`/pets/${petId}/history/new`}>
+            <Button size="sm">
+                <PlusCircle className="mr-2 h-4 w-4"/>
+                Add Record
+            </Button>
+        </Link>
+      </PageHeader>
       <div className="p-4">
         <Card>
           <CardHeader>
