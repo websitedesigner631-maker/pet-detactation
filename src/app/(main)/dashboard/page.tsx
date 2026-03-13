@@ -152,7 +152,7 @@ export default function DashboardPage() {
     if (!user || !firestore) return null;
     return doc(firestore, 'users', user.uid);
   }, [user, firestore]);
-  const { data: userProfile, isLoading: loadingProfile } = useDoc(userDocRef);
+  const { data: userProfile, loading: loadingProfile } = useDoc(userDocRef);
 
   const petsCollection = useMemoFirebase(() => {
     if (!user || !firestore) return null;
@@ -188,41 +188,42 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="p-4 space-y-6">
-      <header className="space-y-1">
-        <h1 className="text-2xl font-bold text-foreground">
+    <div className="flex flex-col h-full">
+      <header className="bg-primary text-primary-foreground p-4 pb-16 rounded-b-3xl">
+        <h1 className="text-2xl font-bold">
           Hello, {user?.displayName?.split(' ')[0] || 'Pet Lover'}!
         </h1>
-        <p className="text-muted-foreground">
+        <p className="text-primary-foreground/80">
           How can we help you and your furry friend today?
         </p>
       </header>
 
-      <div>
-        <h2 className="text-lg font-semibold mb-2">My Pets</h2>
-        <PetCarousel pets={pets} loading={loadingPets} />
-      </div>
-
-      {upcomingAppointments && upcomingAppointments.length > 0 ? (
-          <UpcomingAppointmentCard appointment={upcomingAppointments[0]} />
-      ) : (
-          <Card className="bg-muted/50 border-dashed">
-              <CardContent className="p-4 text-center text-muted-foreground text-sm flex items-center justify-center gap-2">
-                  <Info className="h-4 w-4" />
-                  No upcoming appointments.
-              </CardContent>
-          </Card>
-      )}
-
-      <div>
-        <h2 className="text-lg font-semibold mb-4">Quick Actions</h2>
-        <div className="grid grid-cols-4 gap-y-6 gap-x-2">
-            {featureLinks.map((link) => (
-            <FeatureButton key={link.href} {...link} />
-            ))}
+      <main className="flex-1 p-4 space-y-6 -mt-12">
+        <div>
+          <h2 className="text-lg font-semibold mb-2 px-1">My Pets</h2>
+          <PetCarousel pets={pets} loading={loadingPets} />
         </div>
-      </div>
 
+        {upcomingAppointments && upcomingAppointments.length > 0 ? (
+            <UpcomingAppointmentCard appointment={upcomingAppointments[0]} />
+        ) : (
+            <Card className="bg-muted/50 border-dashed">
+                <CardContent className="p-4 text-center text-muted-foreground text-sm flex items-center justify-center gap-2">
+                    <Info className="h-4 w-4" />
+                    No upcoming appointments.
+                </CardContent>
+            </Card>
+        )}
+
+        <div>
+          <h2 className="text-lg font-semibold mb-4 px-1">Quick Actions</h2>
+          <div className="grid grid-cols-4 gap-y-6 gap-x-2">
+              {featureLinks.map((link) => (
+              <FeatureButton key={link.href} {...link} />
+              ))}
+          </div>
+        </div>
+      </main>
 
       <VoiceAssistantDialog />
     </div>
