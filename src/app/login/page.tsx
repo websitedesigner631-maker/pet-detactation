@@ -66,7 +66,7 @@ export default function LoginPage() {
         title: 'Login Failed',
         description:
           error.code === 'auth/invalid-credential'
-            ? 'Invalid email or password.'
+            ? 'Invalid email or password. Please try again or sign up.'
             : 'An error occurred. Please try again.',
       });
     } finally {
