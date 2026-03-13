@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, addDoc, deleteDoc, doc } from 'firebase/firestore';
+import { collection, deleteDoc, doc, setDoc } from 'firebase/firestore';
 import PageHeader from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter, CardDescription } from '@/components/ui/card';
@@ -13,6 +13,9 @@ import { useToast } from '@/hooks/use-toast';
 import type { Veterinarian } from '@/lib/types';
 import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
+import { initializeApp, deleteApp, type FirebaseApp } from 'firebase/app';
+import { getAuth, createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { firebaseConfig } from '@/firebase/config';
 
 const ADMIN_EMAIL = 'rraghabbarik@gmail.com';
 
@@ -27,6 +30,7 @@ function AdminDashboard() {
     specialties: '', // Comma-separated
     profileImageUrl: '',
     email: '',
+    password: '',
   });
 
   const vetsCollection = useMemoFirebase(() => {
@@ -43,33 +47,76 @@ function AdminDashboard() {
   const handleAddVet = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!firestore) return;
-    if (!formState.name || !formState.specialties || !formState.email) {
+    if (!formState.name || !formState.email || !formState.password || !formState.specialties) {
       toast({ variant: 'destructive', title: 'Please fill all required fields.' });
       return;
     }
+     if (formState.password.length < 6) {
+        toast({ variant: 'destructive', title: 'Password is too weak.', description: 'Password must be at least 6 characters long.' });
+        return;
+    }
+
     setIsSubmitting(true);
+    let tempApp: FirebaseApp | null = null;
+    
     try {
-      await addDoc(collection(firestore, 'veterinarians'), {
+      const tempAppName = `temp-vet-signup-${Date.now()}`;
+      tempApp = initializeApp(firebaseConfig, tempAppName);
+      const tempAuth = getAuth(tempApp);
+
+      const userCredential = await createUserWithEmailAndPassword(tempAuth, formState.email, formState.password);
+      const newVetUser = userCredential.user;
+      
+      await updateProfile(newVetUser, { displayName: formState.name });
+      const newVetUid = newVetUser.uid;
+
+      // Create the public veterinarian profile
+      const vetDocRef = doc(firestore, 'veterinarians', newVetUid);
+      await setDoc(vetDocRef, {
+        id: newVetUid,
         name: formState.name,
         email: formState.email,
         specialties: formState.specialties.split(',').map(s => s.trim()).filter(Boolean),
-        profileImageUrl: formState.profileImageUrl || `https://picsum.photos/seed/${Date.now()}/200/200`,
+        profileImageUrl: formState.profileImageUrl || `https://picsum.photos/seed/${newVetUid}/200/200`,
       });
-      toast({ title: 'Veterinarian Added' });
-      setFormState({ name: '', specialties: '', profileImageUrl: '', email: '' });
+
+      // Create the private user document
+      const userDocRef = doc(firestore, 'users', newVetUid);
+      await setDoc(userDocRef, {
+        id: newVetUid,
+        name: formState.name,
+        email: formState.email,
+        languagePreference: 'en',
+        vetId: newVetUid,
+      });
+
+      toast({ title: 'Veterinarian Account Created' });
+      setFormState({ name: '', specialties: '', profileImageUrl: '', email: '', password: '' });
+
     } catch (error: any) {
       console.error(error);
-      toast({ variant: 'destructive', title: 'Error', description: error.message });
+      let description = 'An unknown error occurred.';
+      if (error.code === 'auth/email-already-in-use') {
+        description = 'This email is already in use by another account.';
+      } else if (error.code === 'auth/weak-password') {
+        description = 'The password must be at least 6 characters long.';
+      }
+      toast({ variant: 'destructive', title: 'Creation Failed', description });
     } finally {
       setIsSubmitting(false);
+      if (tempApp) {
+        await deleteApp(tempApp);
+      }
     }
   };
 
   const handleDeleteVet = async (id: string) => {
     if (!firestore) return;
     try {
+      // This only deletes the Firestore profile, not the Auth user,
+      // which requires the Admin SDK.
       await deleteDoc(doc(firestore, 'veterinarians', id));
-      toast({ title: 'Veterinarian Removed' });
+      toast({ title: 'Veterinarian Profile Removed' });
     } catch (error: any) {
       toast({ variant: 'destructive', title: 'Error', description: error.message });
     }
@@ -79,9 +126,9 @@ function AdminDashboard() {
     <div className="p-4 space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Invite New Veterinarian</CardTitle>
+          <CardTitle>Create Veterinarian Account</CardTitle>
           <CardDescription>
-            This creates a veterinarian profile. They must then sign up with the same email to create their login and access their dashboard.
+            Create a new veterinarian user and profile. They can sign in with the email and password you provide.
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleAddVet}>
@@ -93,6 +140,10 @@ function AdminDashboard() {
              <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input id="email" type="email" placeholder="dr.jane@example.com" value={formState.email} onChange={handleInputChange} />
+            </div>
+             <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <Input id="password" type="password" placeholder="Min. 6 characters" value={formState.password} onChange={handleInputChange} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="specialties">Specialties (comma-separated)</Label>
@@ -106,7 +157,7 @@ function AdminDashboard() {
           <CardFooter>
             <Button type="submit" className="w-full" disabled={isSubmitting}>
               {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlusCircle className="mr-2 h-4 w-4" />}
-              Add Veterinarian
+              Create Veterinarian Account
             </Button>
           </CardFooter>
         </form>
