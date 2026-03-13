@@ -4,13 +4,15 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { User, Settings, Shield, Bell, LogOut, Loader2, Calendar } from 'lucide-react';
+import { User, Settings, Shield, Bell, LogOut, Loader2, Calendar, UserCog } from 'lucide-react';
 import PageHeader from '@/components/page-header';
 import Link from 'next/link';
 import { useUser } from '@/firebase';
 import { getAuth, signOut } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
+
+const ADMIN_EMAIL = 'rraghabbarik@gmail.com';
 
 const ProfileMenuItem = ({
   icon: Icon,
@@ -55,6 +57,8 @@ export default function ProfilePage() {
     )
   }
 
+  const isAdmin = user?.email === ADMIN_EMAIL;
+
   return (
     <div>
       <PageHeader title="Profile" />
@@ -69,6 +73,14 @@ export default function ProfilePage() {
             <p className="text-muted-foreground">{user?.email}</p>
           </div>
         </div>
+        
+        {isAdmin && (
+             <Card className="bg-primary/10 border-primary/20">
+                <CardContent className="p-2">
+                    <ProfileMenuItem icon={UserCog} label="Admin Dashboard" href="/admin" />
+                </CardContent>
+            </Card>
+        )}
 
         <Card>
           <CardContent className="p-2">
