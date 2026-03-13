@@ -111,19 +111,19 @@ export default function ProfilePage() {
 
         <Card>
           <CardContent className="p-2">
-            <ProfileMenuItem icon={User} label="Account Information" href="/profile/account" disabled />
+            <ProfileMenuItem icon={User} label="Account Information" href="/profile/account" />
             <Separator />
             <ProfileMenuItem icon={Calendar} label="My Appointments" href="/appointments" />
             <Separator />
-            <ProfileMenuItem icon={Bell} label="Notifications" href="/profile/notifications" disabled />
+            <ProfileMenuItem icon={Bell} label="Notifications" href="/profile/notifications" />
              <Separator />
-            <ProfileMenuItem icon={Shield} label="Privacy & Security" href="/profile/security" disabled />
+            <ProfileMenuItem icon={Shield} label="Privacy & Security" href="/profile/security" />
           </CardContent>
         </Card>
         
         <Card>
             <CardContent className="p-2">
-                <ProfileMenuItem icon={Settings} label="Settings" href="/profile/settings" disabled/>
+                <ProfileMenuItem icon={Settings} label="Settings" href="/profile/settings"/>
             </CardContent>
         </Card>
 
