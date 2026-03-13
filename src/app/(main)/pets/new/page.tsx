@@ -67,6 +67,7 @@ export default function NewPetPage() {
       setIsLoading(true);
       try {
           await addDoc(collection(firestore, `users/${user.uid}/pets`), {
+              ownerId: user.uid,
               name,
               petType,
               breed,
