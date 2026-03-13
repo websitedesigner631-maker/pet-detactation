@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -39,9 +39,10 @@ import {
 } from '@/ai/flows/generate-pet-schedule';
 import PageHeader from '@/components/page-header';
 import { useToast } from '@/hooks/use-toast';
-import { pets } from '@/lib/data';
 import type { Pet, ScheduleItem, ScheduleItemCategory } from '@/lib/types';
 import { LucideIcon } from 'lucide-react';
+import { useCollection, useUser, useFirestore } from '@/firebase';
+import { addDoc, collection, deleteDoc, doc } from 'firebase/firestore';
 
 const categoryIcons: { [key: string]: LucideIcon } = {
   Feeding: Bone,
@@ -61,15 +62,19 @@ const scheduleCategories: ScheduleItemCategory[] = [
   'Other',
 ];
 
-// This component will contain the existing AI generator logic
-function AIGenerator() {
-  const [selectedPetId, setSelectedPetId] = useState<string | null>(
-    pets.length > 0 ? pets[0].id : null
-  );
+function AIGenerator({ pets, loadingPets }: { pets: Pet[] | null, loadingPets: boolean }) {
+  const [selectedPetId, setSelectedPetId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [schedule, setSchedule] =
     useState<GeneratePetScheduleOutput | null>(null);
   const { toast } = useToast();
+
+   useEffect(() => {
+    if (pets && pets.length > 0 && !selectedPetId) {
+      setSelectedPetId(pets[0].id);
+    }
+  }, [pets, selectedPetId]);
+
 
   const handleGenerateSchedule = async () => {
     if (!selectedPetId) {
@@ -81,7 +86,7 @@ function AIGenerator() {
       return;
     }
 
-    const pet = pets.find((p) => p.id === selectedPetId);
+    const pet = pets?.find((p) => p.id === selectedPetId);
     if (!pet) return;
 
     setIsLoading(true);
@@ -115,7 +120,7 @@ function AIGenerator() {
     }
   };
 
-  const selectedPet = pets.find((p) => p.id === selectedPetId);
+  const selectedPet = pets?.find((p) => p.id === selectedPetId);
 
   return (
     <div className="space-y-6">
@@ -128,7 +133,7 @@ function AIGenerator() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {pets.length > 0 && selectedPet ? (
+          {loadingPets ? <Loader2 className="mx-auto h-6 w-6 animate-spin" /> : (pets && pets.length > 0 && selectedPet) ? (
             <Select
               value={selectedPet.id}
               onValueChange={(id) => setSelectedPetId(id)}
@@ -200,22 +205,31 @@ function AIGenerator() {
   );
 }
 
-// This component will contain the new manual schedule logic
-function ManualSchedule() {
-  const [manualSchedule, setManualSchedule] = useState<ScheduleItem[]>([]);
+function ManualSchedule({ pets, loadingPets }: { pets: Pet[] | null, loadingPets: boolean }) {
+  const { user, loading: loadingUser } = useUser();
+  const firestore = useFirestore();
+  const { data: manualSchedule, loading: loadingSchedule } = useCollection<ScheduleItem>(`users/${user?.uid}/schedule`, { orderBy: ['createdAt', 'desc'] });
+  
   const [newItem, setNewItem] = useState({
     title: '',
     time: '',
     category: 'Feeding' as ScheduleItemCategory,
-    petId: pets.length > 0 ? pets[0].id : '',
+    petId: '',
   });
+
+  useEffect(() => {
+    if (pets && pets.length > 0 && !newItem.petId) {
+      setNewItem(prev => ({...prev, petId: pets[0].id}));
+    }
+  }, [pets, newItem.petId]);
+  
   const { toast } = useToast();
 
   const handleInputChange = (field: string, value: string) => {
     setNewItem((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleAddItem = () => {
+  const handleAddItem = async () => {
     if (!newItem.title || !newItem.time || !newItem.petId) {
       toast({
         variant: 'destructive',
@@ -224,36 +238,46 @@ function ManualSchedule() {
       });
       return;
     }
+    if (!firestore || !user) return;
 
-    const itemToAdd: ScheduleItem = {
-      ...newItem,
-      id: Date.now().toString() + Math.random().toString(),
-    };
-
-    setManualSchedule((prev) => [...prev, itemToAdd]);
-    setNewItem({
-      title: '',
-      time: '',
-      category: 'Feeding',
-      petId: newItem.petId,
-    });
-    toast({
-      title: 'Item Added',
-      description: `${itemToAdd.title} has been added to your schedule.`,
-    });
+    try {
+      await addDoc(collection(firestore, `users/${user.uid}/schedule`), {
+        ...newItem,
+        createdAt: new Date(),
+      });
+      setNewItem({
+        title: '',
+        time: '',
+        category: 'Feeding',
+        petId: newItem.petId,
+      });
+      toast({
+        title: 'Item Added',
+        description: `${newItem.title} has been added to your schedule.`,
+      });
+    } catch (error) {
+      toast({ variant: 'destructive', title: 'Error', description: 'Could not add item.'})
+    }
   };
 
-  const handleDeleteItem = (id: string) => {
-    setManualSchedule((prev) => prev.filter((item) => item.id !== id));
-    toast({
-      title: 'Item Removed',
-      description: 'The schedule item has been removed.',
-    });
+  const handleDeleteItem = async (id: string) => {
+    if (!firestore || !user) return;
+    try {
+      await deleteDoc(doc(firestore, `users/${user.uid}/schedule`, id));
+      toast({
+        title: 'Item Removed',
+        description: 'The schedule item has been removed.',
+      });
+    } catch (error) {
+       toast({ variant: 'destructive', title: 'Error', description: 'Could not remove item.'})
+    }
   };
 
-  const petsWithSchedules = pets.filter((pet) =>
-    manualSchedule.some((item) => item.petId === pet.id)
+  const petsWithSchedules = pets?.filter((pet) =>
+    manualSchedule?.some((item) => item.petId === pet.id)
   );
+  
+  const isLoading = loadingPets || loadingUser || loadingSchedule;
 
   return (
     <div className="space-y-6">
@@ -267,13 +291,13 @@ function ManualSchedule() {
             <Select
               value={newItem.petId}
               onValueChange={(value) => handleInputChange('petId', value)}
-              disabled={pets.length === 0}
+              disabled={!pets || pets.length === 0}
             >
               <SelectTrigger id="pet">
                 <SelectValue placeholder="Select a pet" />
               </SelectTrigger>
               <SelectContent>
-                {pets.map((pet) => (
+                {pets?.map((pet) => (
                   <SelectItem key={pet.id} value={pet.id}>
                     {pet.name}
                   </SelectItem>
@@ -324,21 +348,23 @@ function ManualSchedule() {
           <Button
             onClick={handleAddItem}
             className="w-full"
-            disabled={pets.length === 0}
+            disabled={!pets || pets.length === 0 || isLoading}
           >
             <PlusCircle className="mr-2 h-4 w-4" />
             Add to Schedule
           </Button>
         </CardFooter>
       </Card>
+      
+      {isLoading && <Loader2 className="mx-auto h-6 w-6 animate-spin"/>}
 
-      {manualSchedule.length > 0 && (
+      {!isLoading && manualSchedule && manualSchedule.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle>Your Custom Schedule</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {petsWithSchedules.map((pet) => (
+            {petsWithSchedules?.map((pet) => (
               <div key={pet.id}>
                 <h3 className="font-bold text-lg mb-2">{pet.name}'s Schedule</h3>
                 <div className="space-y-3">
@@ -382,6 +408,9 @@ function ManualSchedule() {
 }
 
 export default function SchedulePage() {
+  const { user } = useUser();
+  const { data: pets, loading: loadingPets } = useCollection<Pet>(`users/${user?.uid}/pets`);
+
   return (
     <div>
       <PageHeader title="Pet Schedule" />
@@ -392,10 +421,10 @@ export default function SchedulePage() {
             <TabsTrigger value="my-schedule">My Schedule</TabsTrigger>
           </TabsList>
           <TabsContent value="ai-generator" className="mt-6">
-            <AIGenerator />
+            <AIGenerator pets={pets} loadingPets={loadingPets} />
           </TabsContent>
           <TabsContent value="my-schedule" className="mt-6">
-            <ManualSchedule />
+            <ManualSchedule pets={pets} loadingPets={loadingPets} />
           </TabsContent>
         </Tabs>
       </div>

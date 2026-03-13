@@ -26,12 +26,14 @@ import {
   BrainCircuit,
   Loader2,
 } from 'lucide-react';
-import { pets } from '@/lib/data';
 import PageHeader from '@/components/page-header';
 import Link from 'next/link';
 import { getPetCareInfo, type PetCareInfoOutput } from '@/ai/flows/get-pet-care-info';
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { useDoc, useUser } from '@/firebase';
+import type { Pet } from '@/lib/types';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const InfoRow = ({
   icon: Icon,
@@ -106,17 +108,33 @@ function CareGuide({ careInfo, breed }: { careInfo: PetCareInfoOutput, breed: st
 
 export default function PetProfilePage({ params }: { params: { id: string } }) {
   const [careInfo, setCareInfo] = useState<PetCareInfoOutput | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
   const { toast } = useToast();
+  const { user } = useUser();
+  const { data: pet, loading: isLoadingPet } = useDoc<Pet>(`users/${user?.uid}/pets`, params.id);
   
-  const pet = pets.find((p) => p.id === params.id);
+  if (isLoadingPet) {
+    return (
+        <div className="p-4 space-y-5">
+            <Skeleton className="h-80 w-full rounded-3xl" />
+            <Skeleton className="h-20 w-full rounded-2xl" />
+            <Skeleton className="h-14 w-full rounded-xl" />
+             <div className="space-y-2 pt-4">
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+             </div>
+        </div>
+    )
+  }
 
   if (!pet) {
     notFound();
   }
   
   const handleGenerateCareGuide = async () => {
-    setIsLoading(true);
+    setIsGenerating(true);
     setCareInfo(null);
     try {
       const result = await getPetCareInfo({ petType: pet.petType, breed: pet.breed });
@@ -136,7 +154,7 @@ export default function PetProfilePage({ params }: { params: { id: string } }) {
           : "The AI could not generate the care guide. Please try again.",
       });
     } finally {
-      setIsLoading(false);
+      setIsGenerating(false);
     }
   };
 
@@ -183,8 +201,8 @@ export default function PetProfilePage({ params }: { params: { id: string } }) {
         {careInfo ? (
             <CareGuide careInfo={careInfo} breed={pet.breed} />
         ) : (
-            <Button onClick={handleGenerateCareGuide} disabled={isLoading} className="w-full h-14 text-lg rounded-xl shadow-md">
-                {isLoading ? (
+            <Button onClick={handleGenerateCareGuide} disabled={isGenerating} className="w-full h-14 text-lg rounded-xl shadow-md">
+                {isGenerating ? (
                     <>
                         <Loader2 className="mr-3 animate-spin" />
                         Generating Guide...
@@ -211,9 +229,9 @@ export default function PetProfilePage({ params }: { params: { id: string } }) {
         </div>
         
         <Link href={`/pets/${pet.id}/history`}>
-          <Button size="lg" className="w-full h-14 text-lg rounded-xl shadow-md">
+          <Button size="lg" className="w-full h-14 text-lg rounded-xl shadow-md" disabled>
             <FileText className="mr-3" />
-            View Medical History
+            View Medical History (Coming Soon)
           </Button>
         </Link>
       </div>

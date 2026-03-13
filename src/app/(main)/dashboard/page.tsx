@@ -1,3 +1,4 @@
+'use client';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -12,6 +13,7 @@ import {
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import VoiceAssistantDialog from '@/components/voice-assistant-dialog';
+import { useUser } from '@/firebase';
 
 const featureLinks: {
   href: string;
@@ -50,11 +52,13 @@ function FeatureButton({
 }
 
 export default function DashboardPage() {
+  const { user } = useUser();
+
   return (
     <div className="p-4 space-y-6">
       <header className="space-y-1">
         <h1 className="text-2xl font-bold text-foreground">
-          Hello, Pet Lover!
+          Hello, {user?.displayName?.split(' ')[0] || 'Pet Lover'}!
         </h1>
         <p className="text-muted-foreground">
           How can we help you and your furry friend today?

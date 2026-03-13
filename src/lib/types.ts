@@ -1,6 +1,7 @@
 import type { LucideIcon } from 'lucide-react';
+import type { DocumentData, Timestamp } from 'firebase/firestore';
 
-export type Pet = {
+export interface Pet extends DocumentData {
   id: string;
   name: string;
   petType: 'Dog' | 'Cat' | 'Bird' | 'Other';
@@ -8,8 +9,8 @@ export type Pet = {
   age: number;
   weight: number;
   avatarUrl: string;
-  vaccinations: Vaccination[];
-  medicalRecords: MedicalRecord[];
+  vaccinations?: Vaccination[];
+  medicalRecords?: MedicalRecord[];
 };
 
 export type Vaccination = {
@@ -68,21 +69,24 @@ export type EmergencyResource = {
   phone?: string;
 }
 
-export type LostPetReport = {
+export interface LostPetReport extends DocumentData {
   id: string;
   petName: string;
   petPhotoUrl: string;
   lastSeen: string;
   description: string;
   contact: string;
+  reporterId: string;
+  createdAt: Timestamp;
 }
 
 export type ScheduleItemCategory = 'Feeding' | 'Exercise' | 'Grooming' | 'Training' | 'Health' | 'Other';
 
-export type ScheduleItem = {
+export interface ScheduleItem extends DocumentData {
     id: string;
     title: string;
     time: string;
     category: ScheduleItemCategory;
     petId: string;
+    createdAt: Timestamp;
 };

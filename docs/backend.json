@@ -1,0 +1,82 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "User Profile",
+      "description": "Represents a user's profile information.",
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "The user's email address."
+        },
+        "displayName": {
+          "type": "string",
+          "description": "The user's display name."
+        }
+      },
+      "required": ["email"]
+    },
+    "Pet": {
+      "title": "Pet",
+      "description": "Represents a pet.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "petType": { "type": "string", "enum": ["Dog", "Cat", "Bird", "Other"] },
+        "breed": { "type": "string" },
+        "age": { "type": "number" },
+        "weight": { "type": "number" },
+        "avatarUrl": { "type": "string", "format": "uri" }
+      },
+      "required": ["name", "petType", "breed", "age", "weight"]
+    },
+    "ScheduleItem": {
+        "title": "Schedule Item",
+        "description": "A single item in a pet's schedule.",
+        "type": "object",
+        "properties": {
+            "title": { "type": "string" },
+            "time": { "type": "string" },
+            "category": { "type": "string" },
+            "petId": { "type": "string" }
+        },
+        "required": ["title", "time", "category", "petId"]
+    },
+    "LostPetReport": {
+        "title": "Lost Pet Report",
+        "description": "A report for a lost pet.",
+        "type": "object",
+        "properties": {
+            "petName": { "type": "string" },
+            "petPhotoUrl": { "type": "string", "format": "uri" },
+            "lastSeen": { "type": "string" },
+            "description": { "type": "string" },
+            "contact": { "type": "string" },
+            "reporterId": { "type": "string" }
+        },
+        "required": ["petName", "lastSeen", "description", "contact", "reporterId"]
+    }
+  },
+  "auth": {
+    "providers": ["email"]
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Stores user profile information."
+    },
+    "/users/{userId}/pets/{petId}": {
+      "schema": { "$ref": "#/entities/Pet" },
+      "description": "Stores pets for a specific user."
+    },
+    "/users/{userId}/schedule/{scheduleItemId}": {
+        "schema": { "$ref": "#/entities/ScheduleItem" },
+        "description": "Stores schedule items for a user's pets."
+    },
+    "/lost-pets/{reportId}": {
+        "schema": { "$ref": "#/entities/LostPetReport" },
+        "description": "A public collection of lost pet reports."
+    }
+  }
+}

@@ -1,11 +1,13 @@
+'use client';
+
 import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { PlusCircle, Dog, Cat, Bird } from 'lucide-react';
-import { pets } from '@/lib/data';
+import { PlusCircle, Dog, Cat, Bird, Loader2 } from 'lucide-react';
 import type { Pet } from '@/lib/types';
 import PageHeader from '@/components/page-header';
+import { useCollection, useUser } from '@/firebase';
 
 const petIcons = {
   Dog: <Dog className="h-6 w-6 text-muted-foreground" />,
@@ -39,6 +41,9 @@ function PetCard({ pet }: { pet: Pet }) {
 }
 
 export default function PetsPage() {
+  const { user } = useUser();
+  const { data: pets, loading } = useCollection<Pet>(`users/${user?.uid}/pets`);
+
   return (
     <div>
       <PageHeader title="My Pets">
@@ -50,9 +55,10 @@ export default function PetsPage() {
         </Link>
       </PageHeader>
       <div className="p-4 space-y-4">
-        {pets.length > 0 ? (
+        {loading && <div className="flex justify-center mt-8"><Loader2 className="h-8 w-8 animate-spin" /></div>}
+        {!loading && pets && pets.length > 0 ? (
           pets.map((pet) => <PetCard key={pet.id} pet={pet} />)
-        ) : (
+        ) : !loading && (
           <Card className="text-center py-10">
             <CardHeader>
               <CardTitle>No Pets Yet</CardTitle>
