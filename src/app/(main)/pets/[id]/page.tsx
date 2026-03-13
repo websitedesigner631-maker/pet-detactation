@@ -124,6 +124,7 @@ export default function PetProfilePage({ params }: { params: { id: string } }) {
   if (isLoadingPet) {
     return (
         <div className="p-4 space-y-5">
+            <PageHeader title="Pet Profile" />
             <Skeleton className="h-80 w-full rounded-3xl" />
             <Skeleton className="h-20 w-full rounded-2xl" />
             <Skeleton className="h-14 w-full rounded-xl" />
@@ -237,9 +238,9 @@ export default function PetProfilePage({ params }: { params: { id: string } }) {
         </div>
         
         <Link href={`/pets/${pet.id}/history`}>
-          <Button size="lg" className="w-full h-14 text-lg rounded-xl shadow-md" disabled>
+          <Button size="lg" className="w-full h-14 text-lg rounded-xl shadow-md">
             <FileText className="mr-3" />
-            View Medical History (Coming Soon)
+            View Medical History
           </Button>
         </Link>
       </div>

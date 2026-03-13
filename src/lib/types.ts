@@ -9,57 +9,77 @@ export interface Pet extends DocumentData {
   age: number;
   weight: number;
   avatarUrl: string;
-  vaccinations?: Vaccination[];
-  medicalRecords?: MedicalRecord[];
 };
 
-export type Vaccination = {
+export interface MedicalRecord extends DocumentData {
   id: string;
-  vaccine: string;
-  date: string;
-  nextDueDate?: string;
-};
-
-export type MedicalRecord = {
-  id: string;
+  petId: string;
+  recordType: string;
   title: string;
-  date: string;
-  fileUrl: string;
-  notes: string;
-};
+  date: Timestamp;
+  description: string;
+  fileUrl?: string;
+  nextDueDate?: Timestamp;
+  veterinarianId?: string;
+}
+
+export interface AIScanResult extends DocumentData {
+  id: string;
+  petId: string;
+  scanDate: Timestamp;
+  mediaUrl: string;
+  detectedProblems: string[];
+  explanation: string;
+  suggestedCareSteps: string;
+  confidenceScore?: number;
+}
 
 export type HealthHistoryEvent = {
   id: string;
-  date: string;
-  type: 'Scan' | 'Vet Visit' | 'Vaccination' | 'Medication';
+  date: Date;
+  type: 'Scan' | 'Record';
   title: string;
   details: string;
+  source: MedicalRecord | AIScanResult;
 };
 
-export type Reminder = {
+export interface Reminder extends DocumentData {
   id: string;
-  title: string;
-  time: string;
-  icon: LucideIcon;
-  petId?: string;
-};
-
-export type FoodGuideItem = {
-  id: string;
-  name: string;
+  ownerId: string;
+  petId: string;
+  type: 'Vaccination' | 'Feeding' | 'Medication' | 'Checkup' | 'Other';
+  scheduledDateTime: Timestamp;
   description: string;
-  category: 'Safe' | 'Avoid' | 'Diet Suggestion';
-  imageUrl: string;
-};
+  isCompleted: boolean;
+  recurrencePattern?: 'Once' | 'Daily' | 'Weekly' | 'Monthly' | 'Yearly';
+}
 
-export type VetService = {
-  id:string;
+export interface FoodGuideEntry extends DocumentData {
+    id: string;
+    foodName: string;
+    category: string;
+    safetyRating: 'Safe' | 'Moderation' | 'Harmful';
+    generalDescription: string;
+    petTypeCompatibility: string[];
+    breedConsiderations?: string;
+    ageConsiderations?: string;
+    nutritionalBenefits?: string;
+    risks?: string;
+}
+
+export interface ServiceLocation extends DocumentData {
+  id: string;
   name: string;
-  type: 'Clinic' | 'Hospital' | 'Shop' | 'Grooming' | 'Shelter';
+  type: 'VeterinaryClinic' | 'AnimalHospital' | 'PetShop' | 'GroomingCenter' | 'AnimalShelter';
   address: string;
-  phone: string;
-  distance: string;
-};
+  latitude: number;
+  longitude: number;
+  contactNumber: string;
+  email?: string;
+  websiteUrl?: string;
+  operatingHours?: string;
+  description?: string;
+}
 
 export interface User extends DocumentData {
   id: string;
@@ -78,7 +98,7 @@ export interface Veterinarian extends DocumentData {
 }
 
 export interface Appointment extends DocumentData {
-  id: string;
+  id:string;
   petId: string;
   petName: string;
   ownerId: string;
