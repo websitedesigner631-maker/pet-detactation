@@ -31,9 +31,10 @@ import Link from 'next/link';
 import { getPetCareInfo, type PetCareInfoOutput } from '@/ai/flows/get-pet-care-info';
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { useDoc, useUser } from '@/firebase';
+import { useDoc, useUser, useFirestore, useMemoFirebase } from '@/firebase';
 import type { Pet } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
+import { doc } from 'firebase/firestore';
 
 const InfoRow = ({
   icon: Icon,
@@ -111,7 +112,14 @@ export default function PetProfilePage({ params }: { params: { id: string } }) {
   const [isGenerating, setIsGenerating] = useState(false);
   const { toast } = useToast();
   const { user } = useUser();
-  const { data: pet, loading: isLoadingPet } = useDoc<Pet>(`users/${user?.uid}/pets`, params.id);
+  const firestore = useFirestore();
+
+  const petDocRef = useMemoFirebase(() => {
+    if (!user || !firestore) return null;
+    return doc(firestore, `users/${user.uid}/pets`, params.id);
+  }, [user, firestore, params.id]);
+
+  const { data: pet, loading: isLoadingPet } = useDoc<Pet>(petDocRef);
   
   if (isLoadingPet) {
     return (
@@ -137,7 +145,7 @@ export default function PetProfilePage({ params }: { params: { id: string } }) {
     setIsGenerating(true);
     setCareInfo(null);
     try {
-      const result = await getPetCareInfo({ petType: pet.petType, breed: pet.breed });
+      const result = await getPetCareInfo({ petType: pet.type, breed: pet.breed });
       setCareInfo(result);
       toast({
         title: "Care Guide Generated!",
@@ -222,7 +230,7 @@ export default function PetProfilePage({ params }: { params: { id: string } }) {
           </h3>
           <div className="space-y-2">
             <InfoRow icon={User} label="Name" value={pet.name} />
-            <InfoRow icon={PawPrint} label="Type" value={pet.petType} />
+            <InfoRow icon={PawPrint} label="Type" value={pet.type} />
             <InfoRow icon={Cake} label="Age" value={`${pet.age} Years`} />
             <InfoRow icon={Scale} label="Weight" value={`${pet.weight} kg`} />
           </div>

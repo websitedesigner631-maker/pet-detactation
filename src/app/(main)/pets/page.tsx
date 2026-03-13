@@ -7,7 +7,8 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 import { PlusCircle, Dog, Cat, Bird, Loader2 } from 'lucide-react';
 import type { Pet } from '@/lib/types';
 import PageHeader from '@/components/page-header';
-import { useCollection, useUser } from '@/firebase';
+import { useCollection, useUser, useFirestore, useMemoFirebase } from '@/firebase';
+import { collection } from 'firebase/firestore';
 
 const petIcons = {
   Dog: <Dog className="h-6 w-6 text-muted-foreground" />,
@@ -33,7 +34,7 @@ function PetCard({ pet }: { pet: Pet }) {
             <h3 className="font-bold text-lg">{pet.name}</h3>
             <p className="text-sm text-muted-foreground">{pet.breed}</p>
           </div>
-          {petIcons[pet.petType]}
+          {petIcons[pet.type]}
         </CardContent>
       </Card>
     </Link>
@@ -42,7 +43,14 @@ function PetCard({ pet }: { pet: Pet }) {
 
 export default function PetsPage() {
   const { user } = useUser();
-  const { data: pets, loading } = useCollection<Pet>(`users/${user?.uid}/pets`);
+  const firestore = useFirestore();
+
+  const petsCollection = useMemoFirebase(() => {
+    if (!user || !firestore) return null;
+    return collection(firestore, `users/${user.uid}/pets`);
+  }, [user, firestore]);
+  
+  const { data: pets, loading } = useCollection<Pet>(petsCollection);
 
   return (
     <div>

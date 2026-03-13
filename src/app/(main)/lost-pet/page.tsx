@@ -17,8 +17,8 @@ import { Label } from '@/components/ui/label';
 import { PlusCircle, Search, Loader2 } from 'lucide-react';
 import type { LostPetReport } from '@/lib/types';
 import PageHeader from '@/components/page-header';
-import { useCollection, useUser, useFirestore } from '@/firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { useCollection, useUser, useFirestore, useMemoFirebase } from '@/firebase';
+import { collection, addDoc, serverTimestamp, query, orderBy, limit } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 
 function LostPetCard({ report }: { report: LostPetReport }) {
@@ -53,10 +53,15 @@ function LostPetCard({ report }: { report: LostPetReport }) {
 }
 
 export default function LostPetPage() {
-  const { data: lostPetReports, loading } = useCollection<LostPetReport>('lostPetReports', { orderBy: ['createdAt', 'desc'], limit: 20});
+  const firestore = useFirestore();
+  const lostPetReportsQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return query(collection(firestore, 'lostPetReports'), orderBy('createdAt', 'desc'), limit(20));
+  }, [firestore]);
+
+  const { data: lostPetReports, loading } = useCollection<LostPetReport>(lostPetReportsQuery);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { user } = useUser();
-  const firestore = useFirestore();
   const { toast } = useToast();
 
   const [formState, setFormState] = useState({

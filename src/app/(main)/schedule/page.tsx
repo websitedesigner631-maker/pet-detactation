@@ -41,8 +41,8 @@ import PageHeader from '@/components/page-header';
 import { useToast } from '@/hooks/use-toast';
 import type { Pet, ScheduleItem, ScheduleItemCategory } from '@/lib/types';
 import { LucideIcon } from 'lucide-react';
-import { useCollection, useUser, useFirestore } from '@/firebase';
-import { addDoc, collection, deleteDoc, doc } from 'firebase/firestore';
+import { useCollection, useUser, useFirestore, useMemoFirebase } from '@/firebase';
+import { addDoc, collection, deleteDoc, doc, query, orderBy } from 'firebase/firestore';
 
 const categoryIcons: { [key: string]: LucideIcon } = {
   Feeding: Bone,
@@ -94,7 +94,7 @@ function AIGenerator({ pets, loadingPets }: { pets: Pet[] | null, loadingPets: b
 
     try {
       const result = await generatePetSchedule({
-        petType: pet.petType,
+        petType: pet.type,
         breed: pet.breed,
         age: pet.age,
       });
@@ -208,7 +208,13 @@ function AIGenerator({ pets, loadingPets }: { pets: Pet[] | null, loadingPets: b
 function ManualSchedule({ pets, loadingPets }: { pets: Pet[] | null, loadingPets: boolean }) {
   const { user, loading: loadingUser } = useUser();
   const firestore = useFirestore();
-  const { data: manualSchedule, loading: loadingSchedule } = useCollection<ScheduleItem>(`users/${user?.uid}/schedule`, { orderBy: ['createdAt', 'desc'] });
+
+  const scheduleQuery = useMemoFirebase(() => {
+    if (!user || !firestore) return null;
+    return query(collection(firestore, `users/${user.uid}/schedule`), orderBy('createdAt', 'desc'));
+  }, [user, firestore]);
+  
+  const { data: manualSchedule, loading: loadingSchedule } = useCollection<ScheduleItem>(scheduleQuery);
   
   const [newItem, setNewItem] = useState({
     title: '',
@@ -409,7 +415,14 @@ function ManualSchedule({ pets, loadingPets }: { pets: Pet[] | null, loadingPets
 
 export default function SchedulePage() {
   const { user } = useUser();
-  const { data: pets, loading: loadingPets } = useCollection<Pet>(`users/${user?.uid}/pets`);
+  const firestore = useFirestore();
+
+  const petsCollection = useMemoFirebase(() => {
+    if (!user || !firestore) return null;
+    return collection(firestore, `users/${user.uid}/pets`);
+  }, [user, firestore]);
+
+  const { data: pets, loading: loadingPets } = useCollection<Pet>(petsCollection);
 
   return (
     <div>
