@@ -61,6 +61,26 @@ export type VetService = {
   distance: string;
 };
 
+export interface Veterinarian extends DocumentData {
+  id: string;
+  name: string;
+  specialties: string[];
+  profileImageUrl: string;
+  email?: string;
+}
+
+export interface Appointment extends DocumentData {
+  id: string;
+  petId: string;
+  petName: string;
+  ownerId: string;
+  veterinarianId: string;
+  veterinarianName: string;
+  appointmentDateTime: Timestamp;
+  reasonForVisit: string;
+  status: 'Scheduled' | 'Completed' | 'Canceled';
+}
+
 export type EmergencyResource = {
   id: string;
   type: 'First Aid' | 'Hospital';

@@ -4,7 +4,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { User, Settings, Shield, Bell, LogOut, Loader2 } from 'lucide-react';
+import { User, Settings, Shield, Bell, LogOut, Loader2, Calendar } from 'lucide-react';
 import PageHeader from '@/components/page-header';
 import Link from 'next/link';
 import { useUser } from '@/firebase';
@@ -73,6 +73,8 @@ export default function ProfilePage() {
         <Card>
           <CardContent className="p-2">
             <ProfileMenuItem icon={User} label="Account Information" href="/profile/account" disabled />
+            <Separator />
+            <ProfileMenuItem icon={Calendar} label="My Appointments" href="/appointments" />
             <Separator />
             <ProfileMenuItem icon={Bell} label="Notifications" href="/profile/notifications" disabled />
              <Separator />

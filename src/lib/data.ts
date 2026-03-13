@@ -1,4 +1,4 @@
-import type { Reminder, HealthHistoryEvent, VetService, EmergencyResource, FoodGuideItem } from './types';
+import type { Reminder, HealthHistoryEvent, VetService, EmergencyResource, FoodGuideItem, Veterinarian } from './types';
 import { Syringe, Bell, Pill, Stethoscope, Bone } from 'lucide-react';
 
 export const pets = [];
@@ -10,6 +10,12 @@ export const reminders: Reminder[] = [
   { id: '2', title: 'Lucy\'s Flea Medication', time: '09:00 on 1st of month', icon: Pill, petId: '2' },
   { id: '3', title: 'Annual Vet Checkup', time: '2024-09-15 11:00', icon: Stethoscope },
   { id: '4', title: 'Buddy\'s Rabies Booster', time: '2024-05-20', icon: Syringe, petId: '1' },
+];
+
+export const veterinarians: Veterinarian[] = [
+    { id: 'vet1', name: 'Dr. Emily Carter', specialties: ['Cardiology', 'Internal Medicine'], profileImageUrl: 'https://picsum.photos/seed/vet1/200/200', email: 'emily.carter@vet.com' },
+    { id: 'vet2', name: 'Dr. Johnathan Lee', specialties: ['Dermatology', 'Allergies'], profileImageUrl: 'https://picsum.photos/seed/vet2/200/200', email: 'john.lee@vet.com' },
+    { id: 'vet3', name: 'Dr. Sarah Chen', specialties: ['Oncology', 'Surgery'], profileImageUrl: 'https://picsum.photos/seed/vet3/200/200', email: 'sarah.chen@vet.com' },
 ];
 
 export const vetServices: VetService[] = [
