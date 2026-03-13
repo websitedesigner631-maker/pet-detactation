@@ -2,7 +2,7 @@
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { User, Settings, Shield, Bell, LogOut, Loader2, Calendar, UserCog, Stethoscope } from 'lucide-react';
 import PageHeader from '@/components/page-header';
@@ -96,10 +96,15 @@ export default function ProfilePage() {
             </Card>
         )}
         
-        {isVet && (
+        {isVet && userProfile?.vetId && (
              <Card className="bg-primary/10 border-primary/20">
+                <CardHeader className="p-4 pb-2">
+                    <CardTitle className="text-lg flex items-center gap-2"><UserCog/> Veterinarian Portal</CardTitle>
+                </CardHeader>
                 <CardContent className="p-2">
                     <ProfileMenuItem icon={Stethoscope} label="My Bookings" href="/veterinarian/bookings" />
+                    <Separator />
+                    <ProfileMenuItem icon={User} label="My Public Profile" href={`/veterinarian/${userProfile.vetId}`} />
                 </CardContent>
             </Card>
         )}
