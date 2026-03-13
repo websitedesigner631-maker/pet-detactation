@@ -675,6 +675,26 @@
         }
       },
       {
+        "path": "/veterinarians/{veterinarianId}/appointments/{appointmentId}",
+        "definition": {
+          "entityName": "Appointment",
+          "schema": {
+            "$ref": "#/backend/entities/Appointment"
+          },
+          "description": "Stores a duplicate of appointments for a specific veterinarian, allowing them to view their schedule. Access is restricted to the veterinarian.",
+          "params": [
+            {
+              "name": "veterinarianId",
+              "description": "The unique identifier of the veterinarian."
+            },
+            {
+              "name": "appointmentId",
+              "description": "The unique identifier of the appointment."
+            }
+          ]
+        }
+      },
+      {
         "path": "/serviceLocations/{serviceLocationId}",
         "definition": {
           "entityName": "ServiceLocation",

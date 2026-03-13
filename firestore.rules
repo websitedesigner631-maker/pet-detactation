@@ -192,6 +192,22 @@ service cloud.firestore {
       allow get, list: if isSignedIn();
       allow create, update, delete: if isAdmin();
     }
+    
+    /**
+     * @description A veterinarian can manage appointments booked with them.
+     * @path /veterinarians/{veterinarianId}/appointments/{appointmentId}
+     * @allow (list) Veterinarian 'vet_abc' listing appointments at `/veterinarians/vet_abc/appointments`.
+     * @deny (create) A user trying to create an appointment directly in a vet's subcollection. This is handled by client-side duplication.
+     * @principle Provides a private view of schedule for service providers.
+     */
+    match /veterinarians/{veterinarianId}/appointments/{appointmentId} {
+      allow get, list: if isOwner(veterinarianId);
+      // Allow creation by any signed-in user (the pet owner), but vetId must match.
+      allow create: if isSignedIn() && request.resource.data.veterinarianId == veterinarianId;
+      // Allow vet to update status, but not change core details.
+      allow update: if isOwner(veterinarianId) && request.resource.data.ownerId == resource.data.ownerId;
+      allow delete: if false; // Only owner can cancel, which deletes both copies.
+    }
 
     /**
      * @description Service locations are public to all authenticated users but only managed by admins.

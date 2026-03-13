@@ -99,7 +99,7 @@ export default function ProfilePage() {
         {isVet && (
              <Card className="bg-primary/10 border-primary/20">
                 <CardContent className="p-2">
-                    <ProfileMenuItem icon={Stethoscope} label="Veterinarian Dashboard" href={`/veterinarian/${userProfile.vetId}`} />
+                    <ProfileMenuItem icon={Stethoscope} label="My Bookings" href="/veterinarian/bookings" />
                 </CardContent>
             </Card>
         )}

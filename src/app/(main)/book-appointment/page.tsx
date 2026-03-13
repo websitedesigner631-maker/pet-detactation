@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { addDoc, collection, Timestamp } from 'firebase/firestore';
+import { addDoc, collection, Timestamp, doc, setDoc } from 'firebase/firestore';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { Calendar as CalendarIcon, Loader2 } from 'lucide-react';
@@ -70,8 +70,10 @@ function BookAppointmentForm() {
       const appointmentDateTime = new Date(date);
       appointmentDateTime.setHours(hours, minutes);
 
-      await addDoc(collection(firestore, `users/${user.uid}/appointments`), {
+      const appointmentData = {
         ownerId: user.uid,
+        ownerName: user.displayName || 'Unknown Owner',
+        ownerPhotoUrl: user.photoURL || null,
         petId: selectedPetId,
         petName: selectedPet.name,
         veterinarianId: vetId,
@@ -79,7 +81,16 @@ function BookAppointmentForm() {
         appointmentDateTime: Timestamp.fromDate(appointmentDateTime),
         reasonForVisit: reason,
         status: 'Scheduled',
-      });
+      };
+
+      // Create appointment for the user
+      const userAppointmentsRef = collection(firestore, `users/${user.uid}/appointments`);
+      const newAppointmentRef = await addDoc(userAppointmentsRef, appointmentData);
+
+      // Duplicate appointment for the veterinarian
+      const vetAppointmentRef = doc(firestore, `veterinarians/${vetId}/appointments`, newAppointmentRef.id);
+      await setDoc(vetAppointmentRef, appointmentData);
+
 
       toast({ title: 'Appointment Booked!', description: `Your appointment with ${vetName} is confirmed.` });
       router.push('/appointments');

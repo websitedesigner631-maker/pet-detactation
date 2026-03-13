@@ -82,6 +82,8 @@ export interface Appointment extends DocumentData {
   petId: string;
   petName: string;
   ownerId: string;
+  ownerName: string;
+  ownerPhotoUrl: string | null;
   veterinarianId: string;
   veterinarianName: string;
   appointmentDateTime: Timestamp;
